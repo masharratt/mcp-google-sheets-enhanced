@@ -64,6 +64,39 @@ docker logs --tail 50 mcp-google-sheets-enhanced  # no auth ExceptionGroup after
 { "mcpServers": { "google-sheets": { "type": "sse", "url": "http://localhost:8000/sse" } } }
 ```
 
+## Remote / public deploys (optional auth)
+
+The MCP endpoint has no built-in authentication and the service account has Editor
+access to your sheets. Do **not** expose `:8000` to the internet unprotected. By default
+the compose file binds the server to `127.0.0.1` (local only).
+
+An optional bearer-token gateway (Caddy) ships behind the `secure` compose profile:
+
+```bash
+# in .env:  set a token, optionally a domain for HTTPS
+#   MCP_AUTH_TOKEN=$(openssl rand -hex 32)
+#   DOMAIN=sheets.example.com      # blank = plain HTTP on AUTH_PORT
+docker compose --profile secure up -d
+```
+
+- `DOMAIN` set → Caddy auto-provisions a Let's Encrypt cert and serves HTTPS on `:443`
+  (port 80 must be reachable for the ACME challenge).
+- `DOMAIN` blank → plain HTTP on `AUTH_PORT` (default 8080), token still enforced. Use
+  behind an upstream TLS terminator only.
+
+Every request must carry the token, including the MCP client:
+
+```json
+{ "mcpServers": { "google-sheets": {
+  "type": "sse",
+  "url": "https://sheets.example.com/sse",
+  "headers": { "Authorization": "Bearer YOUR_MCP_AUTH_TOKEN" }
+} } }
+```
+
+Requests without a valid `Authorization: Bearer <token>` get `401`. The unauthenticated
+backend stays bound to localhost; the gateway reaches it over the internal compose network.
+
 After any container restart, reconnect the client (`/mcp` in Claude Code). The SSE session is
 server-side stateful; the old session 404s ("Could not find session").
 

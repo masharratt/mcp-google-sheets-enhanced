@@ -3,9 +3,13 @@ services:
     build: .
     image: mcp-google-sheets-enhanced:latest
     container_name: mcp-google-sheets-enhanced
+    # Bound to localhost so the unauthenticated backend is never exposed beyond
+    # this host. For local-only use, point your MCP client at localhost:8000.
+    # For remote/public deploys, use the `secure` profile below (the auth gateway
+    # reaches this service over the internal compose network, not these ports).
     ports:
-      - "8000:8000"
-      - "8001:8001"
+      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:8001:8001"
     env_file:
       - ./.env
     # CREDENTIALS_CONFIG is supplied via env_file (./.env). Do NOT add it here
@@ -22,3 +26,27 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  # OPTIONAL bearer-token auth gateway. Disabled by default.
+  # Enable for remote/public deploys:  docker compose --profile secure up -d
+  # Requires MCP_AUTH_TOKEN in .env. TLS is expected at your platform edge; for
+  # Caddy-native HTTPS see the note in Caddyfile (also publish 80/443 here).
+  auth-gateway:
+    image: caddy:2-alpine
+    container_name: mcp-google-sheets-auth
+    profiles: ["secure"]
+    depends_on:
+      - mcp-google-sheets-enhanced
+    environment:
+      - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN:?set MCP_AUTH_TOKEN in .env for the secure profile}
+    ports:
+      - "${AUTH_PORT:-8080}:8080"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

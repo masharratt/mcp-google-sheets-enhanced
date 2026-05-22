@@ -1,0 +1,19 @@
+# Optional auth gateway for remote/public deploys. Used only by the compose
+# `secure` profile (docker compose --profile secure up).
+#
+# Listens on :8080 and enforces a bearer token on every request, then proxies to
+# the MCP backend over the internal compose network.
+#
+# TLS: terminate it at your platform edge (Fly.io, Cloudflare, a load balancer).
+# To let Caddy handle HTTPS itself instead, replace the `:8080` line below with
+# your hostname (e.g. `sheets.example.com {`), publish ports 80 and 443 in
+# docker-compose.yml, and Caddy will auto-provision a Let's Encrypt cert.
+:8080 {
+	@unauthorized not header Authorization "Bearer {$MCP_AUTH_TOKEN}"
+	respond @unauthorized "Unauthorized: missing or invalid bearer token" 401
+
+	# flush_interval -1 disables response buffering, required for SSE streaming.
+	reverse_proxy mcp-google-sheets-enhanced:8000 {
+		flush_interval -1
+	}
+}
