@@ -1,0 +1,19 @@
+# Secrets - NEVER commit
+.env
+credentials.json
+service_account.json
+token.json
+*.pem
+*-credentials*.json
+
+# Backups
+*.bak
+*.bak-*
+*.backup
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/

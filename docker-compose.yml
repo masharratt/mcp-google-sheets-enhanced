@@ -1,0 +1,24 @@
+services:
+  mcp-google-sheets-enhanced:
+    build: .
+    image: mcp-google-sheets-enhanced:latest
+    container_name: mcp-google-sheets-enhanced
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+    env_file:
+      - ./.env
+    # CREDENTIALS_CONFIG is supplied via env_file (./.env). Do NOT add it here
+    # as `CREDENTIALS_CONFIG=${CREDENTIALS_CONFIG}` -- that interpolates from the
+    # launching shell (not env_file) and resolves to empty when the var is not
+    # exported, silently overriding env_file and breaking Google auth + the SSE
+    # handshake.
+    environment:
+      - GOOGLE_PROJECT_ID=${GOOGLE_PROJECT_ID:-}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
