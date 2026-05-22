@@ -7,6 +7,7 @@ from typing import Dict, Any, Optional
 from mcp.server.fastmcp import Context
 
 from gsheets_mcp.core import mcp, _get_sheet_id, _parse_row_col
+from gsheets_mcp.builders import build_chart_spec, build_chart_request
 
 
 @mcp.tool()
@@ -54,84 +55,31 @@ def create_chart(spreadsheet_id: str,
 
         actual_chart_type = chart_type_mapping.get(chart_type.upper(), 'COLUMN')
 
-        # Build chart specification
-        chart_spec = {
-            "title": title or f"{chart_type} Chart",
-            "basicChart": {
-                "chartType": actual_chart_type,
-                "axis": [
-                    {
-                        "position": "BOTTOM_AXIS",
-                        "title": "Categories"
-                    },
-                    {
-                        "position": "LEFT_AXIS",
-                        "title": "Values"
-                    }
-                ],
-                "domains": [
-                    {
-                        "domain": {
-                            "sourceRange": {
-                                "sources": [
-                                    {
-                                        "sheetId": sheet_id,
-                                        "startRowIndex": range_info['start_row'] - 1,
-                                        "endRowIndex": range_info['end_row'],
-                                        "startColumnIndex": range_info['start_col'] - 1,
-                                        "endColumnIndex": range_info['start_col']
-                                    }
-                                ]
-                            }
-                        }
-                    }
-                ],
-                "series": [
-                    {
-                        "series": {
-                            "sourceRange": {
-                                "sources": [
-                                    {
-                                        "sheetId": sheet_id,
-                                        "startRowIndex": range_info['start_row'] - 1,
-                                        "endRowIndex": range_info['end_row'],
-                                        "startColumnIndex": range_info['start_col'],
-                                        "endColumnIndex": range_info['end_col']
-                                    }
-                                ]
-                            }
-                        },
-                        "targetAxis": "LEFT_AXIS"
-                    }
-                ],
-                "headerCount": 1
-            }
-        }
+        # Build chart specification via builder
+        chart_spec = build_chart_spec(
+            chart_type=actual_chart_type,
+            title=title or f"{chart_type} Chart",
+            sheet_id=sheet_id,
+            start_row=range_info['start_row'] - 1,
+            end_row=range_info['end_row'],
+            start_col=range_info['start_col'] - 1,
+            end_col=range_info['end_col'],
+        )
 
         # Ensure position has sheetId
         if 'sheetId' not in position:
             position['sheetId'] = sheet_id
 
+        anchor = {
+            "sheetId": position.get('sheetId', sheet_id),
+            "rowIndex": position.get('rowIndex', 0),
+            "columnIndex": position.get('columnIndex', 0),
+            "offsetXPixels": position.get('offsetXPixels', 0),
+            "offsetYPixels": position.get('offsetYPixels', 0),
+        }
         request_body = {
             "requests": [
-                {
-                    "addChart": {
-                        "chart": {
-                            "spec": chart_spec,
-                            "position": {
-                                "overlayPosition": {
-                                    "anchorCell": {
-                                        "sheetId": position.get('sheetId', sheet_id),
-                                        "rowIndex": position.get('rowIndex', 0),
-                                        "columnIndex": position.get('columnIndex', 0)
-                                    },
-                                    "offsetXPixels": position.get('offsetXPixels', 0),
-                                    "offsetYPixels": position.get('offsetYPixels', 0)
-                                }
-                            }
-                        }
-                    }
-                }
+                build_chart_request(chart_spec=chart_spec, anchor=anchor)
             ]
         }
 

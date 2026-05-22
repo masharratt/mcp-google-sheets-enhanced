@@ -1,0 +1,42 @@
+{
+  "name": "sales_dashboard",
+  "description": "Sales performance dashboard with title bar, banded data table, line chart, bar chart, and frozen header row.",
+  "blocks": [
+    {
+      "type": "title_bar",
+      "range": "A1:H1",
+      "text": "{title}",
+      "background_color": {"red": 0.15, "green": 0.28, "blue": 0.45},
+      "text_format": {
+        "bold": true,
+        "font_size": 14,
+        "foreground_color": {"red": 1.0, "green": 1.0, "blue": 1.0}
+      }
+    },
+    {
+      "type": "banded_table",
+      "range": "A3:H40",
+      "header_color": {"red": 0.24, "green": 0.42, "blue": 0.65},
+      "first_band_color": {"red": 0.94, "green": 0.96, "blue": 0.99},
+      "second_band_color": {"red": 1.0, "green": 1.0, "blue": 1.0}
+    },
+    {
+      "type": "freeze",
+      "frozen_rows": 1
+    },
+    {
+      "type": "chart",
+      "chart_type": "LINE",
+      "title": "Sales Over Time",
+      "data_range": "{data_range}",
+      "anchor": {"row": 2, "col": 9}
+    },
+    {
+      "type": "chart",
+      "chart_type": "BAR",
+      "title": "Sales by Category",
+      "data_range": "{data_range}",
+      "anchor": {"row": 16, "col": 9}
+    }
+  ]
+}

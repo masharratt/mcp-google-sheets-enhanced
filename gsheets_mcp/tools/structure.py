@@ -2,12 +2,12 @@
 Structure tools: add/delete rows, columns, and auto-resize dimensions.
 """
 
-import re
 from typing import Dict, Any, List, Optional
 
 from mcp.server.fastmcp import Context
 
-from gsheets_mcp.core import mcp, _get_sheet_id, _col_to_num
+from gsheets_mcp.core import mcp, _get_sheet_id, _col_to_num, _a1_to_grid_range
+from gsheets_mcp.builders import build_freeze_request
 
 
 @mcp.tool()
@@ -457,28 +457,13 @@ def freeze_dimensions(spreadsheet_id: str,
     try:
         sheet_id = _get_sheet_id(sheets_service, spreadsheet_id, sheet)
 
-        grid_properties: Dict[str, Any] = {}
-        fields_list: List[str] = []
-
-        if frozen_rows is not None:
-            grid_properties["frozenRowCount"] = frozen_rows
-            fields_list.append("gridProperties.frozenRowCount")
-
-        if frozen_columns is not None:
-            grid_properties["frozenColumnCount"] = frozen_columns
-            fields_list.append("gridProperties.frozenColumnCount")
-
         request_body = {
             "requests": [
-                {
-                    "updateSheetProperties": {
-                        "properties": {
-                            "sheetId": sheet_id,
-                            "gridProperties": grid_properties,
-                        },
-                        "fields": ",".join(fields_list),
-                    }
-                }
+                build_freeze_request(
+                    sheet_id=sheet_id,
+                    frozen_rows=frozen_rows,
+                    frozen_cols=frozen_columns,
+                )
             ]
         }
 
@@ -663,28 +648,6 @@ def ungroup_dimensions(spreadsheet_id: str,
     except Exception as e:
         return {"success": False, "message": f"Error ungrouping dimensions: {str(e)}"}
 
-
-def _a1_to_grid_range(sheet_id: int, range_str: str) -> Dict[str, Any]:
-    """
-    Convert an A1 notation range string (e.g. 'A1:D10') to a GridRange dict.
-    Rows are 0-based, end indices are exclusive.
-    """
-    match = re.match(r'^([A-Za-z]+)(\d+):([A-Za-z]+)(\d+)$', range_str.strip())
-    if not match:
-        raise ValueError(f"Invalid A1 range: {range_str!r}")
-
-    start_col = _col_to_num(match.group(1).upper()) - 1  # 0-based
-    start_row = int(match.group(2)) - 1                  # 0-based
-    end_col = _col_to_num(match.group(3).upper())        # exclusive
-    end_row = int(match.group(4))                        # exclusive
-
-    return {
-        "sheetId": sheet_id,
-        "startRowIndex": start_row,
-        "endRowIndex": end_row,
-        "startColumnIndex": start_col,
-        "endColumnIndex": end_col,
-    }
 
 
 @mcp.tool()

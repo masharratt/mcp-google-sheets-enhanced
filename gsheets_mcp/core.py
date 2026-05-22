@@ -271,6 +271,30 @@ def _build_cell_format(format_dict: Dict[str, Any]) -> Dict[str, Any]:
     return cell_format
 
 
+def _a1_to_grid_range(sheet_id: int, range_str: str) -> Dict[str, Any]:
+    """
+    Convert an A1 notation range string (e.g. 'A1:D10') to a GridRange dict.
+    Rows are 0-based, end indices are exclusive.
+    """
+    import re
+    match = re.match(r'^([A-Za-z]+)(\d+):([A-Za-z]+)(\d+)$', range_str.strip())
+    if not match:
+        raise ValueError(f"Invalid A1 range: {range_str!r}")
+
+    start_col = _col_to_num(match.group(1).upper()) - 1  # 0-based
+    start_row = int(match.group(2)) - 1                  # 0-based
+    end_col = _col_to_num(match.group(3).upper())        # exclusive
+    end_row = int(match.group(4))                        # exclusive
+
+    return {
+        "sheetId": sheet_id,
+        "startRowIndex": start_row,
+        "endRowIndex": end_row,
+        "startColumnIndex": start_col,
+        "endColumnIndex": end_col,
+    }
+
+
 def main():
     # Run the server
     transport = "stdio"

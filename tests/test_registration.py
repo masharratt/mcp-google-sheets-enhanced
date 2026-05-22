@@ -19,8 +19,8 @@ def test_tool_count():
     tools = asyncio.get_event_loop().run_until_complete(mcp.list_tools())
     tool_names = [t.name for t in tools]
 
-    assert len(tool_names) == 70, (
-        f"Expected 70 registered tools, got {len(tool_names)}.\n"
+    assert len(tool_names) == 71, (
+        f"Expected 71 registered tools, got {len(tool_names)}.\n"
         f"Registered tools: {sorted(tool_names)}"
     )
 
@@ -78,6 +78,8 @@ def test_tool_names_include_expected():
         # charts / pivot / metadata
         'delete_chart', 'create_pivot_table', 'delete_pivot_table',
         'create_developer_metadata', 'search_developer_metadata',
+        # dashboard
+        'apply_dashboard_template',
     }
 
     missing = expected - tool_names

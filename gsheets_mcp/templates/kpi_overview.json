@@ -1,0 +1,85 @@
+{
+  "name": "kpi_overview",
+  "description": "KPI overview dashboard with title bar, split KPI cards (label + formula value), banded data table, frozen header, column chart, and conditional gradient formatting.",
+  "data_assumptions": "Formulas assume header row at row 7, data rows 8 through 19. Columns: A=Month, B=Revenue, C=Cost, D=Profit, E=Units, F=Margin (as decimal, e.g. 0.35 for 35%).",
+  "blocks": [
+    {
+      "type": "title_bar",
+      "range": "A1:F1",
+      "text": "{title}",
+      "background_color": {"red": 0.22, "green": 0.38, "blue": 0.60},
+      "text_format": {
+        "bold": true,
+        "font_size": 14,
+        "foreground_color": {"red": 1.0, "green": 1.0, "blue": 1.0}
+      }
+    },
+    {
+      "type": "kpi_card",
+      "range": "A3:B5",
+      "label": "Total Revenue",
+      "label_range": "A3:B3",
+      "value_range": "A4:B5",
+      "value_formula": "=SUM(B8:B19)",
+      "value_number_format": {"type": "CURRENCY", "pattern": "$#,##0"},
+      "background_color": {"red": 0.18, "green": 0.52, "blue": 0.73},
+      "text_format": {
+        "bold": true,
+        "foreground_color": {"red": 1.0, "green": 1.0, "blue": 1.0}
+      }
+    },
+    {
+      "type": "kpi_card",
+      "range": "C3:D5",
+      "label": "Total Profit",
+      "label_range": "C3:D3",
+      "value_range": "C4:D5",
+      "value_formula": "=SUM(D8:D19)",
+      "value_number_format": {"type": "CURRENCY", "pattern": "$#,##0"},
+      "background_color": {"red": 0.20, "green": 0.60, "blue": 0.50},
+      "text_format": {
+        "bold": true,
+        "foreground_color": {"red": 1.0, "green": 1.0, "blue": 1.0}
+      }
+    },
+    {
+      "type": "kpi_card",
+      "range": "E3:F5",
+      "label": "Avg Margin",
+      "label_range": "E3:F3",
+      "value_range": "E4:F5",
+      "value_formula": "=AVERAGE(F8:F19)",
+      "value_number_format": {"type": "PERCENT", "pattern": "0.0%"},
+      "background_color": {"red": 0.40, "green": 0.32, "blue": 0.68},
+      "text_format": {
+        "bold": true,
+        "foreground_color": {"red": 1.0, "green": 1.0, "blue": 1.0}
+      }
+    },
+    {
+      "type": "banded_table",
+      "range": "A7:F50",
+      "header_color": {"red": 0.22, "green": 0.38, "blue": 0.60},
+      "first_band_color": {"red": 0.93, "green": 0.96, "blue": 1.0},
+      "second_band_color": {"red": 1.0, "green": 1.0, "blue": 1.0}
+    },
+    {
+      "type": "freeze",
+      "frozen_rows": 1
+    },
+    {
+      "type": "chart",
+      "chart_type": "COLUMN",
+      "title": "KPI Trend",
+      "data_range": "{data_range}",
+      "anchor": {"row": 2, "col": 7}
+    },
+    {
+      "type": "conditional_gradient",
+      "range": "B8:B50",
+      "min_color": {"red": 0.96, "green": 0.50, "blue": 0.44},
+      "mid_color": {"red": 1.0, "green": 0.95, "blue": 0.60},
+      "max_color": {"red": 0.57, "green": 0.82, "blue": 0.63}
+    }
+  ]
+}

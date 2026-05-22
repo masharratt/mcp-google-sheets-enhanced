@@ -7,6 +7,7 @@ from typing import Dict, Any, Optional
 from mcp.server.fastmcp import Context
 
 from gsheets_mcp.core import mcp, _get_sheet_id, _parse_row_col, _get_format_fields, _build_cell_format, _map_text_format_keys
+from gsheets_mcp.builders import build_repeat_cell_request, build_merge_request, build_banding_request
 
 
 @mcp.tool()
@@ -79,21 +80,18 @@ def apply_cell_formatting(spreadsheet_id: str,
         # Create the repeat cell request
         if cell_format:
             range_info = _parse_row_col(range)
-            request = {
-                'repeatCell': {
-                    'range': {
-                        'sheetId': _get_sheet_id(sheets_service, spreadsheet_id, sheet_name),
-                        'startRowIndex': range_info['start_row'] - 1,
-                        'endRowIndex': range_info['end_row'],
-                        'startColumnIndex': range_info['start_col'] - 1,
-                        'endColumnIndex': range_info['end_col']
-                    },
-                    'cell': {
-                        'userEnteredFormat': cell_format
-                    },
-                    'fields': ','.join(_get_format_fields(cell_format))
-                }
+            grid_range = {
+                'sheetId': _get_sheet_id(sheets_service, spreadsheet_id, sheet_name),
+                'startRowIndex': range_info['start_row'] - 1,
+                'endRowIndex': range_info['end_row'],
+                'startColumnIndex': range_info['start_col'] - 1,
+                'endColumnIndex': range_info['end_col'],
             }
+            request = build_repeat_cell_request(
+                grid_range=grid_range,
+                cell_format=cell_format,
+                fields=_get_format_fields(cell_format),
+            )
             requests.append(request)
 
         # Execute the batch update
@@ -443,20 +441,16 @@ def merge_cells(spreadsheet_id: str,
 
         actual_merge_type = merge_type_mapping.get(merge_type.upper(), 'MERGE_ALL')
 
+        grid_range = {
+            "sheetId": sheet_id,
+            "startRowIndex": range_info['start_row'] - 1,
+            "endRowIndex": range_info['end_row'],
+            "startColumnIndex": range_info['start_col'] - 1,
+            "endColumnIndex": range_info['end_col'],
+        }
         request_body = {
             "requests": [
-                {
-                    "mergeCells": {
-                        "mergeType": actual_merge_type,
-                        "range": {
-                            "sheetId": sheet_id,
-                            "startRowIndex": range_info['start_row'] - 1,
-                            "endRowIndex": range_info['end_row'],
-                            "startColumnIndex": range_info['start_col'] - 1,
-                            "endColumnIndex": range_info['end_col']
-                        }
-                    }
-                }
+                build_merge_request(grid_range=grid_range, merge_type=actual_merge_type)
             ]
         }
 
@@ -573,35 +567,22 @@ def add_banding(spreadsheet_id: str,
         sheet_id = _get_sheet_id(sheets_service, spreadsheet_id, sheet)
         range_info = _parse_row_col(range)
 
-        band_properties = {
-            "firstBandColor": first_band_color,
-            "secondBandColor": second_band_color
+        grid_range = {
+            "sheetId": sheet_id,
+            "startRowIndex": range_info['start_row'] - 1,
+            "endRowIndex": range_info['end_row'],
+            "startColumnIndex": range_info['start_col'] - 1,
+            "endColumnIndex": range_info['end_col'],
         }
-
-        if header_color is not None:
-            band_properties["headerColor"] = header_color
-
-        use_columns = apply_to.upper() == 'COLUMNS'
-        properties_key = 'columnProperties' if use_columns else 'rowProperties'
-
-        banded_range = {
-            "range": {
-                "sheetId": sheet_id,
-                "startRowIndex": range_info['start_row'] - 1,
-                "endRowIndex": range_info['end_row'],
-                "startColumnIndex": range_info['start_col'] - 1,
-                "endColumnIndex": range_info['end_col']
-            },
-            properties_key: band_properties
-        }
-
         request_body = {
             "requests": [
-                {
-                    "addBanding": {
-                        "bandedRange": banded_range
-                    }
-                }
+                build_banding_request(
+                    grid_range=grid_range,
+                    header_color=header_color,
+                    first_band_color=first_band_color,
+                    second_band_color=second_band_color,
+                    apply_to=apply_to,
+                )
             ]
         }
 

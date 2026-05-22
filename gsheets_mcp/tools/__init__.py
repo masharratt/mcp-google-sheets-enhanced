@@ -13,9 +13,10 @@ from gsheets_mcp.tools import named_ranges
 from gsheets_mcp.tools import filters
 from gsheets_mcp.tools import pivot
 from gsheets_mcp.tools import metadata
+from gsheets_mcp.tools import dashboard
 
 __all__ = [
     'read', 'write', 'structure', 'sheets', 'format',
     'conditional', 'validation', 'protection', 'charts',
-    'named_ranges', 'filters', 'pivot', 'metadata',
+    'named_ranges', 'filters', 'pivot', 'metadata', 'dashboard',
 ]

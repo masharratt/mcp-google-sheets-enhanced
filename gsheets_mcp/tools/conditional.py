@@ -10,6 +10,7 @@ from typing import List, Dict, Any
 from mcp.server.fastmcp import Context
 
 from gsheets_mcp.core import mcp, _get_sheet_id, _parse_row_col, _build_cell_format
+from gsheets_mcp.builders import build_conditional_request
 
 
 # Maps this tool's legacy lowercase condition aliases to valid Google
@@ -210,12 +211,14 @@ def apply_conditional_formatting(spreadsheet_id: str,
             conditional_format_rules.append(conditional_format_rule)
 
         # Add the conditional formatting rules
-        requests = [{
-            'addConditionalFormatRule': {
-                'index': 0,  # Insert at the beginning
-                'rule': rule
-            }
-        } for rule in conditional_format_rules]
+        requests = [
+            build_conditional_request(
+                grid_ranges=rule['ranges'],
+                rule_body={k: v for k, v in rule.items() if k != 'ranges'},
+                index=0,
+            )
+            for rule in conditional_format_rules
+        ]
 
         body = {'requests': requests}
         response = sheets_service.spreadsheets().batchUpdate(
