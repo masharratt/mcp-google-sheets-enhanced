@@ -19,8 +19,8 @@ def test_tool_count():
     tools = asyncio.get_event_loop().run_until_complete(mcp.list_tools())
     tool_names = [t.name for t in tools]
 
-    assert len(tool_names) == 69, (
-        f"Expected 69 registered tools, got {len(tool_names)}.\n"
+    assert len(tool_names) == 70, (
+        f"Expected 70 registered tools, got {len(tool_names)}.\n"
         f"Registered tools: {sorted(tool_names)}"
     )
 
@@ -69,7 +69,7 @@ def test_tool_names_include_expected():
         'insert_rows', 'insert_columns', 'delete_columns', 'freeze_dimensions',
         'set_dimension_size', 'group_dimensions', 'ungroup_dimensions', 'sort_range',
         # sheets
-        'duplicate_sheet', 'set_sheet_visibility', 'reorder_sheet',
+        'duplicate_sheet', 'delete_sheet', 'set_sheet_visibility', 'reorder_sheet',
         'move_spreadsheet_to_folder', 'trash_spreadsheet',
         # read
         'get_spreadsheet_metadata', 'batch_get_values',

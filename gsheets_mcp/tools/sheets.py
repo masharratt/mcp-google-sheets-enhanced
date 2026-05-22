@@ -453,6 +453,53 @@ def duplicate_sheet(spreadsheet_id: str,
 
 
 @mcp.tool()
+def delete_sheet(spreadsheet_id: str,
+                 sheet: str,
+                 ctx: Context = None) -> Dict[str, Any]:
+    """
+    Delete a sheet (tab) from a spreadsheet.
+
+    Permanently removes the named sheet and all its data. A spreadsheet must
+    retain at least one sheet, so deleting the last remaining sheet fails.
+
+    Args:
+        spreadsheet_id: The ID of the spreadsheet.
+        sheet: Name of the sheet tab to delete (case-sensitive).
+
+    Returns:
+        Dictionary with success status and the deleted sheet name and id.
+    """
+    sheets_service = ctx.request_context.lifespan_context.sheets_service
+
+    try:
+        sheet_id = _get_sheet_id(sheets_service, spreadsheet_id, sheet)
+    except ValueError as exc:
+        return {"success": False, "error": str(exc)}
+
+    request_body = {
+        "requests": [
+            {"deleteSheet": {"sheetId": sheet_id}}
+        ]
+    }
+
+    try:
+        sheets_service.spreadsheets().batchUpdate(
+            spreadsheetId=spreadsheet_id,
+            body=request_body
+        ).execute()
+    except Exception as exc:
+        return {"success": False, "error": f"Error deleting sheet: {str(exc)}"}
+
+    return {
+        "success": True,
+        "message": f"Deleted sheet '{sheet}'",
+        "sheet": sheet,
+        "sheet_id": sheet_id,
+        "spreadsheetId": spreadsheet_id,
+    }
+
+
+@mcp.tool()
 def set_sheet_visibility(spreadsheet_id: str,
                          sheet: str,
                          hidden: bool,
