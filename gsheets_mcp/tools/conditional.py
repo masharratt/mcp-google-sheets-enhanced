@@ -272,13 +272,15 @@ def update_conditional_formatting(spreadsheet_id: str,
                 if 'sheetId' not in r:
                     r['sheetId'] = sheet_id
 
+        # UpdateConditionalFormatRuleRequest has a oneof named 'instruction'
+        # that covers 'rule' and 'newIndex' — only one may be set per request.
+        # Rule-replacement: send index + rule (never newIndex alongside rule).
         request_body = {
             "requests": [
                 {
                     "updateConditionalFormatRule": {
                         "index": rule_id,
-                        "rule": rule,
-                        "newIndex": rule_id
+                        "rule": rule
                     }
                 }
             ]

@@ -167,6 +167,10 @@ def update_chart(spreadsheet_id: str,
     """
     Modify chart properties.
 
+    Reads the existing chart spec first, merges the requested changes into it,
+    then sends the complete merged chartSpec. This preserves the required
+    chart-type body (basicChart, pieChart, etc.) which the API mandates.
+
     Args:
         spreadsheet_id: ID of the Google Spreadsheet
         sheet_name: Name of the sheet (case-sensitive)
@@ -183,12 +187,29 @@ def update_chart(spreadsheet_id: str,
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
+        # Fetch the existing spreadsheet to retrieve the current chart spec.
+        spreadsheet = sheets_service.spreadsheets().get(
+            spreadsheetId=spreadsheet_id,
+            fields="sheets.charts"
+        ).execute()
+
+        existing_spec: Dict[str, Any] = {}
+        for sheet in spreadsheet.get("sheets", []):
+            for chart in sheet.get("charts", []):
+                if chart.get("chartId") == chart_id:
+                    existing_spec = dict(chart.get("spec", {}))
+                    break
+
+        # Merge requested changes into the existing spec so the chart-type
+        # body (basicChart / pieChart / etc.) is always present.
+        merged_spec = {**existing_spec, **properties}
+
         request_body = {
             "requests": [
                 {
                     "updateChartSpec": {
                         "chartId": chart_id,
-                        "spec": properties
+                        "spec": merged_spec
                     }
                 }
             ]
@@ -287,22 +308,29 @@ def move_resize_chart(spreadsheet_id: str,
     try:
         sheet_id = _get_sheet_id(sheets_service, spreadsheet_id, sheet_name)
 
+        overlay: Dict[str, Any] = {
+            "anchorCell": {
+                "sheetId": position.get('sheetId', sheet_id),
+                "rowIndex": position.get('rowIndex', 0),
+                "columnIndex": position.get('columnIndex', 0)
+            },
+            "offsetXPixels": position.get('offsetXPixels', 0),
+            "offsetYPixels": position.get('offsetYPixels', 0)
+        }
+        if 'widthPixels' in position:
+            overlay['widthPixels'] = position['widthPixels']
+        if 'heightPixels' in position:
+            overlay['heightPixels'] = position['heightPixels']
+
         request_body = {
             "requests": [
                 {
-                    "updateChartPosition": {
-                        "chartId": chart_id,
-                        "position": {
-                            "overlayPosition": {
-                                "anchorCell": {
-                                    "sheetId": sheet_id,
-                                    "rowIndex": position.get('rowIndex', 0),
-                                    "columnIndex": position.get('columnIndex', 0)
-                                },
-                                "offsetXPixels": position.get('offsetXPixels', 0),
-                                "offsetYPixels": position.get('offsetYPixels', 0)
-                            }
-                        }
+                    "updateEmbeddedObjectPosition": {
+                        "objectId": chart_id,
+                        "newPosition": {
+                            "overlayPosition": overlay
+                        },
+                        "fields": "anchorCell,offsetXPixels,offsetYPixels,widthPixels,heightPixels"
                     }
                 }
             ]

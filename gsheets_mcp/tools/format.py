@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional
 
 from mcp.server.fastmcp import Context
 
-from gsheets_mcp.core import mcp, _get_sheet_id, _parse_row_col, _get_format_fields, _build_cell_format
+from gsheets_mcp.core import mcp, _get_sheet_id, _parse_row_col, _get_format_fields, _build_cell_format, _map_text_format_keys
 
 
 @mcp.tool()
@@ -50,36 +50,43 @@ def apply_cell_formatting(spreadsheet_id: str,
         # Prepare cell format request
         cell_format = {}
 
-        # Text formatting
+        # Text formatting: camelCase sub-keys via helper
         if 'text_format' in formatting:
-            cell_format['textFormat'] = formatting['text_format']
+            cell_format['textFormat'] = _map_text_format_keys(formatting['text_format'])
 
-        # Alignment
+        # Alignment: each key maps to a sibling camelCase field in userEnteredFormat
         if 'alignment' in formatting:
-            cell_format.update(formatting['alignment'])
+            alignment = formatting['alignment']
+            if 'horizontal' in alignment:
+                cell_format['horizontalAlignment'] = alignment['horizontal']
+            if 'vertical' in alignment:
+                cell_format['verticalAlignment'] = alignment['vertical']
+            if 'wrap_strategy' in alignment:
+                cell_format['wrapStrategy'] = alignment['wrap_strategy']
 
         # Background color
         if 'background_color' in formatting:
             cell_format['backgroundColor'] = formatting['background_color']
 
-        # Borders
+        # Borders (passed through as-is)
         if 'borders' in formatting:
             cell_format['borders'] = formatting['borders']
 
-        # Number format
+        # Number format (passed through as-is)
         if 'number_format' in formatting:
             cell_format['numberFormat'] = formatting['number_format']
 
         # Create the repeat cell request
         if cell_format:
+            range_info = _parse_row_col(range)
             request = {
                 'repeatCell': {
                     'range': {
                         'sheetId': _get_sheet_id(sheets_service, spreadsheet_id, sheet_name),
-                        'startRowIndex': _parse_row_col(range)['start_row'] - 1,
-                        'endRowIndex': _parse_row_col(range)['end_row'],
-                        'startColumnIndex': _parse_row_col(range)['start_col'] - 1,
-                        'endColumnIndex': _parse_row_col(range)['end_col']
+                        'startRowIndex': range_info['start_row'] - 1,
+                        'endRowIndex': range_info['end_row'],
+                        'startColumnIndex': range_info['start_col'] - 1,
+                        'endColumnIndex': range_info['end_col']
                     },
                     'cell': {
                         'userEnteredFormat': cell_format

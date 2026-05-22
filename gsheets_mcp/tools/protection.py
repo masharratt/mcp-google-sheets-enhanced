@@ -117,13 +117,15 @@ def set_edit_permissions(spreadsheet_id: str,
     Returns:
         Dictionary with success status and permission details
     """
-    sheets_service = ctx.request_context.lifespan_context.sheets_service
+    lifespan = ctx.request_context.lifespan_context
+    sheets_service = lifespan.sheets_service
+    requesting_user_email = getattr(lifespan, 'requesting_user_email', None)
 
     try:
         # First, get the protected range info to ensure it exists
         spreadsheet = sheets_service.spreadsheets().get(
             spreadsheetId=spreadsheet_id,
-            fields='sheets.properties,protectedRanges'
+            fields='sheets.properties,sheets.protectedRanges'
         ).execute()
 
         protection_found = False
@@ -142,14 +144,15 @@ def set_edit_permissions(spreadsheet_id: str,
                 "message": f"Protection ID {protection_id} not found"
             }
 
-        # Build editors list
-        editors = []
-        if users:
-            for user in users:
-                if '@' in user:
-                    editors.append({"userEmail": user})
-                else:
-                    editors.append({"domain": user})
+        # Separate user emails from domain entries.
+        user_emails = [u for u in (users or []) if '@' in u]
+
+        # The Sheets API rejects any updateProtectedRange that removes the
+        # requesting account (the service account) from the editors list
+        # ("You can't remove yourself as an editor."). Always keep the
+        # requester present.
+        if requesting_user_email and requesting_user_email not in user_emails:
+            user_emails.append(requesting_user_email)
 
         request_body = {
             "requests": [
@@ -158,7 +161,7 @@ def set_edit_permissions(spreadsheet_id: str,
                         "protectedRange": {
                             "protectedRangeId": int(protection_id),
                             "editors": {
-                                "users": users if users else [],
+                                "users": user_emails,
                                 "domainUsersCanEdit": False
                             }
                         },

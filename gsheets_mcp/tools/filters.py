@@ -57,7 +57,8 @@ def create_filter(spreadsheet_id: str,
         return {
             "success": True,
             "message": f"Filter applied to {range}",
-            "range": range
+            "range": range,
+            "sheet_id": sheet_id
         }
 
     except Exception as e:
@@ -70,17 +71,22 @@ def create_filter(spreadsheet_id: str,
 @mcp.tool()
 def apply_filter_criteria(spreadsheet_id: str,
                           sheet_name: str,
-                          filter_id: int,
                           criteria: Dict[str, Any],
+                          filter_view_id: Optional[int] = None,
                           ctx: Context = None) -> Dict[str, Any]:
     """
-    Set filter conditions.
+    Set filter conditions on either the sheet's basic filter or a named filter view.
+
+    Contract:
+      - filter_view_id absent (or None): applies criteria to the sheet's basic filter
+        via setBasicFilter. Use this after create_filter().
+      - filter_view_id provided: applies criteria to the named filter view with that ID
+        via updateFilterView. Use this after create_filter_view().
 
     Args:
         spreadsheet_id: ID of the Google Spreadsheet
         sheet_name: Name of the sheet (case-sensitive)
-        filter_id: ID of the filter to modify
-        criteria: Dictionary with filter criteria. Example:
+        criteria: Dictionary mapping column-index string to filter criteria. Example:
             {
                 "0": {  # Column index
                     "condition": {
@@ -89,6 +95,7 @@ def apply_filter_criteria(spreadsheet_id: str,
                     }
                 }
             }
+        filter_view_id: ID of a named filter view to update. Omit to target the basic filter.
 
     Returns:
         Dictionary with success status and filter criteria details
@@ -96,31 +103,59 @@ def apply_filter_criteria(spreadsheet_id: str,
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
-        request_body = {
-            "requests": [
-                {
-                    "updateFilterView": {
-                        "filter": {
-                            "filterViewId": filter_id,
-                            "criteria": criteria
-                        },
-                        "fields": "criteria"
+        if filter_view_id is None:
+            # Basic filter path: use setBasicFilter with the full filter body
+            # including criteria so the Sheets API accepts it.
+            sheet_id = _get_sheet_id(sheets_service, spreadsheet_id, sheet_name)
+            request_body = {
+                "requests": [
+                    {
+                        "setBasicFilter": {
+                            "filter": {
+                                "range": {
+                                    "sheetId": sheet_id
+                                },
+                                "criteria": criteria
+                            }
+                        }
                     }
-                }
-            ]
-        }
-
-        response = sheets_service.spreadsheets().batchUpdate(
-            spreadsheetId=spreadsheet_id,
-            body=request_body
-        ).execute()
-
-        return {
-            "success": True,
-            "message": f"Filter criteria updated for filter {filter_id}",
-            "filter_id": filter_id,
-            "criteria": criteria
-        }
+                ]
+            }
+            response = sheets_service.spreadsheets().batchUpdate(
+                spreadsheetId=spreadsheet_id,
+                body=request_body
+            ).execute()
+            return {
+                "success": True,
+                "message": f"Basic filter criteria updated on {sheet_name}",
+                "sheet_name": sheet_name,
+                "criteria": criteria
+            }
+        else:
+            # Named filter-view path: updateFilterView
+            request_body = {
+                "requests": [
+                    {
+                        "updateFilterView": {
+                            "filter": {
+                                "filterViewId": filter_view_id,
+                                "criteria": criteria
+                            },
+                            "fields": "criteria"
+                        }
+                    }
+                ]
+            }
+            response = sheets_service.spreadsheets().batchUpdate(
+                spreadsheetId=spreadsheet_id,
+                body=request_body
+            ).execute()
+            return {
+                "success": True,
+                "message": f"Filter criteria updated for filter view {filter_view_id}",
+                "filter_view_id": filter_view_id,
+                "criteria": criteria
+            }
 
     except Exception as e:
         return {

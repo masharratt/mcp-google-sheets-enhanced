@@ -40,6 +40,9 @@ class SpreadsheetContext:
     sheets_service: Any
     drive_service: Any
     folder_id: Optional[str] = None
+    # Email of the authenticated principal (service account). Used where the
+    # Sheets API forbids removing the requester, e.g. updateProtectedRange.
+    requesting_user_email: Optional[str] = None
 
 
 @asynccontextmanager
@@ -112,7 +115,8 @@ async def spreadsheet_lifespan(server: FastMCP) -> AsyncIterator[SpreadsheetCont
         yield SpreadsheetContext(
             sheets_service=sheets_service,
             drive_service=drive_service,
-            folder_id=DRIVE_FOLDER_ID if DRIVE_FOLDER_ID else None
+            folder_id=DRIVE_FOLDER_ID if DRIVE_FOLDER_ID else None,
+            requesting_user_email=getattr(creds, 'service_account_email', None)
         )
     finally:
         # No explicit cleanup needed for Google APIs
@@ -188,32 +192,75 @@ def _col_to_num(col: str) -> int:
     return result
 
 
-def _get_format_fields(cell_format: Dict[str, Any]) -> List[str]:
-    """Get list of format field names for batch update."""
-    field_mapping = {
-        'textFormat': ['textFormat'],
-        'backgroundColor': ['backgroundColor'],
-        'horizontalAlignment': ['horizontalAlignment'],
-        'verticalAlignment': ['verticalAlignment'],
-        'wrapStrategy': ['wrapStrategy'],
-        'borders': ['borders'],
-        'numberFormat': ['numberFormat']
+def _map_text_format_keys(tf: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Convert a caller-supplied text_format dict (snake_case keys) into the
+    camelCase shape expected by the Google Sheets API textFormat object.
+
+    Supported input keys and their API equivalents:
+        bold             -> bold  (unchanged)
+        italic           -> italic  (unchanged)
+        underline        -> underline  (unchanged)
+        strikethrough    -> strikethrough  (unchanged)
+        font_family      -> fontFamily
+        font_size        -> fontSize
+        foreground_color -> foregroundColor
+        background_color -> backgroundColor  (nested inside textFormat when
+                           caller places it here; top-level background_color
+                           is handled separately as userEnteredFormat.backgroundColor)
+    """
+    key_map = {
+        'font_family': 'fontFamily',
+        'font_size': 'fontSize',
+        'foreground_color': 'foregroundColor',
+        'background_color': 'backgroundColor',
     }
+    result = {}
+    for k, v in tf.items():
+        result[key_map.get(k, k)] = v
+    return result
+
+
+def _get_format_fields(cell_format: Dict[str, Any]) -> List[str]:
+    """
+    Return a list of 'userEnteredFormat.<field>' strings for every top-level
+    key present in cell_format.  Used to build the repeatCell.fields mask.
+    """
+    known_fields = [
+        'textFormat',
+        'backgroundColor',
+        'horizontalAlignment',
+        'verticalAlignment',
+        'wrapStrategy',
+        'borders',
+        'numberFormat',
+    ]
 
     fields = []
-    for key, field_list in field_mapping.items():
-        if key in cell_format:
-            fields.extend(field_list)
+    for field in known_fields:
+        if field in cell_format:
+            fields.append(f'userEnteredFormat.{field}')
 
     return fields
 
 
 def _build_cell_format(format_dict: Dict[str, Any]) -> Dict[str, Any]:
-    """Build cell format dictionary from format specifications."""
+    """
+    Build a userEnteredFormat dict from a caller-supplied format_dict.
+
+    Handles:
+        text_format       -> textFormat  (sub-keys camelCased via _map_text_format_keys)
+        background_color  -> backgroundColor
+        borders           -> borders
+
+    alignment and number_format are intentionally NOT handled here because
+    apply_cell_formatting maps them inline; this keeps the function backward-
+    compatible with conditional.py which only relies on the three keys above.
+    """
     cell_format = {}
 
     if 'text_format' in format_dict:
-        cell_format['textFormat'] = format_dict['text_format']
+        cell_format['textFormat'] = _map_text_format_keys(format_dict['text_format'])
 
     if 'background_color' in format_dict:
         cell_format['backgroundColor'] = format_dict['background_color']

@@ -189,10 +189,13 @@ def clear_data_validation(spreadsheet_id: str,
         sheet_id = _get_sheet_id(sheets_service, spreadsheet_id, sheet_name)
         range_info = _parse_row_col(range)
 
+        # 'deleteDataValidation' is not a valid Sheets API request type.
+        # The documented way to clear validation is setDataValidation with
+        # the 'rule' key omitted entirely.
         request_body = {
             "requests": [
                 {
-                    "deleteDataValidation": {
+                    "setDataValidation": {
                         "range": {
                             "sheetId": sheet_id,
                             "startRowIndex": range_info['start_row'] - 1,

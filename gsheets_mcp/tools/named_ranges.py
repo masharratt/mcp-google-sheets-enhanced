@@ -6,7 +6,44 @@ from typing import Dict, Any
 
 from mcp.server.fastmcp import Context
 
-from gsheets_mcp.core import mcp
+import re
+
+from gsheets_mcp.core import mcp, _get_sheet_id
+from gsheets_mcp.tools.structure import _a1_to_grid_range
+
+
+def _resolve_grid_range(sheets_service, spreadsheet_id: str, range_str: str) -> dict:
+    """
+    Convert an A1 notation range (with or without a 'SheetName!' prefix) into a
+    GridRange dict required by the Sheets API.
+
+    If the range includes a sheet prefix (e.g. 'Sheet1!A2:A4'), that sheet's ID is
+    looked up and the prefix is stripped before parsing. Otherwise the first sheet
+    in the spreadsheet is used.
+    """
+    sheet_name = None
+    cell_range = range_str
+
+    # Strip optional 'SheetName!' prefix
+    match = re.match(r"^(.+)!(.+)$", range_str)
+    if match:
+        sheet_name = match.group(1)
+        cell_range = match.group(2)
+
+    if sheet_name:
+        sheet_id = _get_sheet_id(sheets_service, spreadsheet_id, sheet_name)
+    else:
+        # Use the first sheet's ID from the spreadsheet metadata
+        meta = sheets_service.spreadsheets().get(
+            spreadsheetId=spreadsheet_id,
+            fields='sheets.properties'
+        ).execute()
+        sheets = meta.get('sheets', [])
+        if not sheets:
+            raise ValueError("No sheets found in spreadsheet")
+        sheet_id = sheets[0]['properties']['sheetId']
+
+    return _a1_to_grid_range(sheet_id, cell_range)
 
 
 @mcp.tool()
@@ -28,13 +65,15 @@ def create_named_range(spreadsheet_id: str,
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
+        grid_range = _resolve_grid_range(sheets_service, spreadsheet_id, range)
+
         request_body = {
             "requests": [
                 {
                     "addNamedRange": {
                         "namedRange": {
                             "name": name,
-                            "range": range
+                            "range": grid_range
                         }
                     }
                 }
@@ -142,6 +181,8 @@ def update_named_range(spreadsheet_id: str,
                 "message": f"Named range '{name}' not found"
             }
 
+        grid_range = _resolve_grid_range(sheets_service, spreadsheet_id, new_range)
+
         request_body = {
             "requests": [
                 {
@@ -149,7 +190,7 @@ def update_named_range(spreadsheet_id: str,
                         "namedRange": {
                             "namedRangeId": named_range_id,
                             "name": name,
-                            "range": new_range
+                            "range": grid_range
                         },
                         "fields": "range"
                     }
