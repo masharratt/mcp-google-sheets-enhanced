@@ -11,7 +11,9 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy server files (server.py overrides the pip-installed upstream)
+# Copy server files. server.py is a thin shim that imports the gsheets_mcp
+# package (which holds the tool modules and overrides the pip-installed upstream).
+COPY gsheets_mcp /app/gsheets_mcp
 COPY server.py /app/server.py
 COPY entrypoint.py /app/entrypoint.py
 
