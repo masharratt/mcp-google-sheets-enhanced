@@ -16,19 +16,13 @@ def get_sheet_data(spreadsheet_id: str,
                    include_grid_data: bool = False,
                    ctx: Context = None) -> Dict[str, Any]:
     """
-    Get data from a specific sheet in a Google Spreadsheet.
+    Get data from sheet.
 
     Args:
-        spreadsheet_id: The ID of the spreadsheet (found in the URL)
-        sheet: The name of the sheet
-        range: Optional cell range in A1 notation (e.g., 'A1:C10'). If not provided, gets all data.
-        include_grid_data: If True, includes cell formatting and other metadata in the response.
-            Note: Setting this to True will significantly increase the response size and token usage
-            when parsing the response, as it includes detailed cell formatting information.
-            Default is False (returns values only, more efficient).
-
-    Returns:
-        Grid data structure with either full metadata or just values from Google Sheets API, depending on include_grid_data parameter
+        spreadsheet_id: Spreadsheet ID (from URL)
+        sheet: Sheet name
+        range: A1 range (e.g. 'A1:C10'). Omit for all data.
+        include_grid_data: True includes cell formatting/metadata (much larger response). Default False (values only).
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -70,15 +64,12 @@ def get_sheet_formulas(spreadsheet_id: str,
                        range: Optional[str] = None,
                        ctx: Context = None) -> List[List[Any]]:
     """
-    Get formulas from a specific sheet in a Google Spreadsheet.
+    Get formulas (FORMULA render option) from sheet.
 
     Args:
-        spreadsheet_id: The ID of the spreadsheet (found in the URL)
-        sheet: The name of the sheet
-        range: Optional cell range in A1 notation (e.g., 'A1:C10'). If not provided, gets all formulas from the sheet.
-
-    Returns:
-        A 2D array of the sheet formulas.
+        spreadsheet_id: Spreadsheet ID (from URL)
+        sheet: Sheet name
+        range: A1 range (e.g. 'A1:C10'). Omit for all formulas in sheet.
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -104,17 +95,12 @@ def get_sheet_formulas(spreadsheet_id: str,
 def get_multiple_sheet_data(queries: List[Dict[str, str]],
                             ctx: Context = None) -> List[Dict[str, Any]]:
     """
-    Get data from multiple specific ranges in Google Spreadsheets.
+    Get data from multiple ranges across multiple spreadsheets (one request per range).
+    For multiple ranges in one spreadsheet, prefer batch_get_values.
 
     Args:
-        queries: A list of dictionaries, each specifying a query.
-                 Each dictionary should have 'spreadsheet_id', 'sheet', and 'range' keys.
-                 Example: [{'spreadsheet_id': 'abc', 'sheet': 'Sheet1', 'range': 'A1:B5'},
-                           {'spreadsheet_id': 'xyz', 'sheet': 'Data', 'range': 'C1:C10'}]
-
-    Returns:
-        A list of dictionaries, each containing the original query parameters
-        and the fetched 'data' or an 'error'.
+        queries: List of dicts with keys: spreadsheet_id, sheet, range.
+            Example: [{"spreadsheet_id": "abc", "sheet": "Sheet1", "range": "A1:B5"}]
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
     results = []
@@ -153,16 +139,11 @@ def get_multiple_spreadsheet_summary(spreadsheet_ids: List[str],
                                    rows_to_fetch: int = 5,
                                    ctx: Context = None) -> List[Dict[str, Any]]:
     """
-    Get a summary of multiple Google Spreadsheets, including sheet names,
-    headers, and the first few rows of data for each sheet.
+    Get summary of multiple spreadsheets: title, sheet names, headers, first N rows per sheet.
 
     Args:
-        spreadsheet_ids: A list of spreadsheet IDs to summarize.
-        rows_to_fetch: The number of rows (including header) to fetch for the summary (default: 5).
-
-    Returns:
-        A list of dictionaries, each representing a spreadsheet summary.
-        Includes spreadsheet title, sheet summaries (title, headers, first rows), or an error.
+        spreadsheet_ids: List of spreadsheet IDs to summarize
+        rows_to_fetch: Rows to fetch per sheet including header (default 5)
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
     summaries = []
@@ -242,18 +223,13 @@ def get_spreadsheet_metadata(spreadsheet_id: str,
                              include_sheet_properties: bool = True,
                              ctx: Context = None) -> Dict[str, Any]:
     """
-    Get spreadsheet-level metadata from a Google Spreadsheet without fetching cell data.
+    Get spreadsheet-level metadata without fetching cell data.
 
     Args:
-        spreadsheet_id: The ID of the spreadsheet (found in the URL)
-        include_sheet_properties: If True (default), includes per-sheet properties such as
-            sheetId, title, index, sheetType, hidden, and gridProperties (row/col counts).
-            Set to False to return only top-level spreadsheet properties.
-
-    Returns:
-        Parsed metadata dict containing spreadsheet properties (title, locale, timeZone,
-        autoRecalc, defaultFormat) and, when include_sheet_properties is True, a list of
-        sheet property objects.
+        spreadsheet_id: Spreadsheet ID (from URL)
+        include_sheet_properties: True (default) includes per-sheet properties: sheetId, title, index,
+            sheetType, hidden, gridProperties (row/col counts). False returns top-level properties only
+            (title, locale, timeZone, autoRecalc, defaultFormat).
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -281,26 +257,14 @@ def batch_get_values(spreadsheet_id: str,
                      major_dimension: str = 'ROWS',
                      ctx: Context = None) -> List[Dict[str, Any]]:
     """
-    Read multiple A1 ranges from a single Google Spreadsheet in one API call.
-
-    Unlike get_multiple_sheet_data (which is cross-spreadsheet and makes one request per
-    range), this tool targets a single spreadsheet and issues exactly one
-    spreadsheets.values.batchGet request, returning raw values per range.
+    Read multiple A1 ranges from one spreadsheet in a single batchGet call.
+    For cross-spreadsheet reads use get_multiple_sheet_data instead.
 
     Args:
-        spreadsheet_id: The ID of the spreadsheet (found in the URL)
-        ranges: List of A1 notation range strings (e.g., ['Sheet1!A1:B5', 'Data!C1:C10'])
-        value_render_option: How values should be represented.
-            'FORMATTED_VALUE' (default) - values as displayed in the sheet.
-            'UNFORMATTED_VALUE' - raw numeric values without formatting.
-            'FORMULA' - formulas as entered.
-        major_dimension: The major dimension of the returned values.
-            'ROWS' (default) - each inner list is a row.
-            'COLUMNS' - each inner list is a column.
-
-    Returns:
-        List of dicts, one per requested range, each with 'range' and 'values' keys.
-        'values' is an empty list when the range contains no data.
+        spreadsheet_id: Spreadsheet ID (from URL)
+        ranges: A1 range strings (e.g. ['Sheet1!A1:B5', 'Data!C1:C10'])
+        value_render_option: 'FORMATTED_VALUE' (default, display values), 'UNFORMATTED_VALUE' (raw numbers), or 'FORMULA'
+        major_dimension: 'ROWS' (default, each inner list is a row) or 'COLUMNS'
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -323,13 +287,10 @@ def batch_get_values(spreadsheet_id: str,
 @mcp.tool()
 def list_sheets(spreadsheet_id: str, ctx: Context = None) -> List[str]:
     """
-    List all sheets in a Google Spreadsheet.
+    List all sheet names in spreadsheet.
 
     Args:
-        spreadsheet_id: The ID of the spreadsheet (found in the URL)
-
-    Returns:
-        List of sheet names
+        spreadsheet_id: Spreadsheet ID (from URL)
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 

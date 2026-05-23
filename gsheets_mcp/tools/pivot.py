@@ -24,21 +24,18 @@ def create_pivot_table(spreadsheet_id: str,
                        columns: Optional[List[Dict[str, Any]]] = None,
                        ctx: Context = None) -> Dict[str, Any]:
     """
-    Create a pivot table in Google Sheets using updateCells on an anchor cell.
+    Create pivot table via updateCells on anchor cell.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        source_sheet: Name of the sheet containing source data
-        source_range: A1 notation range of source data (e.g. 'A1:C100')
-        anchor_sheet: Name of the sheet where the pivot table will be placed
-        anchor_row: 0-based row index of the anchor cell
-        anchor_col: 0-based column index of the anchor cell
-        rows: List of row groupings. Each entry: {source_column_offset: int, show_totals: bool, sort_order: str}
-        values: List of value fields. Each entry: {source_column_offset: int, summarize_function: str}
-        columns: Optional list of column groupings (same shape as rows)
-
-    Returns:
-        Dictionary with success status
+        spreadsheet_id: Spreadsheet ID
+        source_sheet: Sheet with source data
+        source_range: A1 range of source data (e.g. 'A1:C100')
+        anchor_sheet: Sheet where pivot table is placed
+        anchor_row: 0-based row index of anchor cell
+        anchor_col: 0-based column index of anchor cell
+        rows: Row groupings, each: {source_column_offset: int, show_totals: bool, sort_order: str}
+        values: Value fields, each: {source_column_offset: int, summarize_function: str}
+        columns: Optional column groupings (same shape as rows)
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -140,16 +137,13 @@ def delete_pivot_table(spreadsheet_id: str,
                        anchor_col: int,
                        ctx: Context = None) -> Dict[str, Any]:
     """
-    Delete a pivot table by writing an empty cell at its anchor position.
+    Delete pivot table by writing empty cell at anchor position.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        anchor_sheet: Name of the sheet containing the pivot table
-        anchor_row: 0-based row index of the pivot table anchor cell
-        anchor_col: 0-based column index of the pivot table anchor cell
-
-    Returns:
-        Dictionary with success status
+        spreadsheet_id: Spreadsheet ID
+        anchor_sheet: Sheet containing pivot table
+        anchor_row: 0-based row index of anchor cell
+        anchor_col: 0-based column index of anchor cell
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 

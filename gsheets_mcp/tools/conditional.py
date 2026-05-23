@@ -117,41 +117,28 @@ def apply_conditional_formatting(spreadsheet_id: str,
                                 rules: List[Dict[str, Any]],
                                 ctx: Context = None) -> Dict[str, Any]:
     """
-    Apply conditional formatting rules to a cell range.
+    Apply conditional formatting rules to cell range.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet_name: Name of the sheet (case-sensitive)
-        range: Cell range in A1 notation (e.g., "A1:C10")
-        rules: List of conditional formatting rules. Two kinds are supported.
+        spreadsheet_id: Spreadsheet ID
+        sheet_name: Sheet name (case-sensitive)
+        range: A1 range (e.g. "A1:C10")
+        rules: List of rule dicts. Two kinds:
 
-            BOOLEAN rules (highlight cells matching a condition):
-            - condition_type: a Google BooleanCondition.type enum
-                (NUMBER_LESS, NUMBER_LESS_THAN_EQ, NUMBER_GREATER,
-                 NUMBER_GREATER_THAN_EQ, NUMBER_EQ, NUMBER_BETWEEN,
-                 TEXT_CONTAINS, TEXT_NOT_CONTAINS, TEXT_EQ, TEXT_STARTS_WITH,
-                 TEXT_ENDS_WITH, DATE_BEFORE, DATE_AFTER, CUSTOM_FORMULA,
-                 NOT_BLANK, BLANK, ...). Legacy lowercase aliases
-                 ("less_than", "greater_than", "equal_to", "text_contains",
-                 "text_starts_with", "text_ends_with", "between",
-                 "formula_custom") are also accepted and mapped.
-            - values: List of raw values for the condition. Single-value
-                conditions take one; NUMBER_BETWEEN takes two; CUSTOM_FORMULA
-                takes the formula string (e.g. "=$M1<0"); BLANK/NOT_BLANK take
-                none.
-            - format: Dict with formatting to apply when condition is met
-                * text_format: font styling
-                * background_color: cell background color
-                * borders: border formatting
+            BOOLEAN (highlight matching cells):
+            - condition_type: Google BooleanCondition.type enum: NUMBER_LESS, NUMBER_LESS_THAN_EQ,
+                NUMBER_GREATER, NUMBER_GREATER_THAN_EQ, NUMBER_EQ, NUMBER_BETWEEN,
+                TEXT_CONTAINS, TEXT_NOT_CONTAINS, TEXT_EQ, TEXT_STARTS_WITH, TEXT_ENDS_WITH,
+                DATE_BEFORE, DATE_AFTER, CUSTOM_FORMULA, NOT_BLANK, BLANK.
+                Legacy lowercase aliases also accepted: "less_than", "greater_than", "equal_to",
+                "text_contains", "text_starts_with", "text_ends_with", "between", "formula_custom".
+            - values: Raw condition values. Single-value conditions take one; NUMBER_BETWEEN takes two;
+                CUSTOM_FORMULA takes formula string (e.g. "=$M1<0"); BLANK/NOT_BLANK take none.
+            - format: Dict with keys: text_format (font styling), background_color, borders.
 
-            GRADIENT / color-scale rules (heatmaps): pass a 'gradient' (or
-            'color_scale') key on the rule instead of condition_type. Each
-            interpolation point is {color: {red,green,blue}, type: <PointType>,
-            value: <str>} where PointType is MIN/MAX/NUMBER/PERCENT/PERCENTILE.
-            Shape: {"minpoint": {...}, "midpoint": {...}, "maxpoint": {...}}.
-            midpoint is optional.
-    Returns:
-        Dictionary with success status and applied rules count
+            GRADIENT (color-scale/heatmap): use 'gradient' or 'color_scale' key instead of condition_type.
+            Shape: {"minpoint": {...}, "midpoint": {...}, "maxpoint": {...}} (midpoint optional).
+            Each point: {color: {red, green, blue}, type: MIN|MAX|NUMBER|PERCENT|PERCENTILE, value: str}.
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -246,23 +233,18 @@ def update_conditional_formatting(spreadsheet_id: str,
                                   rule: Dict[str, Any],
                                   ctx: Context = None) -> Dict[str, Any]:
     """
-    Update an existing conditional formatting rule.
+    Update existing conditional formatting rule by index.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet_name: Name of the sheet (case-sensitive)
-        rule_id: ID of the rule to update
-        rule: Dictionary with new rule configuration. Example:
-            {
-                "ranges": [{"sheetId": 0, "startRowIndex": 1, "endRowIndex": 10, "startColumnIndex": 1, "endColumnIndex": 5}],
-                "booleanRule": {
-                    "condition": {"type": "NUMBER_GREATER", "values": [{"userEnteredValue": "100"}]},
-                    "format": {"backgroundColor": {"red": 1, "green": 0, "blue": 0}}
-                }
-            }
-
-    Returns:
-        Dictionary with success status and updated rule details
+        spreadsheet_id: Spreadsheet ID
+        sheet_name: Sheet name (case-sensitive)
+        rule_id: Index of rule to replace
+        rule: Complete new rule dict with 'ranges' and either 'booleanRule' or 'gradientRule'.
+            Example: {"ranges": [{"sheetId": 0, "startRowIndex": 1, "endRowIndex": 10,
+            "startColumnIndex": 1, "endColumnIndex": 5}],
+            "booleanRule": {"condition": {"type": "NUMBER_GREATER",
+            "values": [{"userEnteredValue": "100"}]},
+            "format": {"backgroundColor": {"red": 1, "green": 0, "blue": 0}}}}
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -314,15 +296,12 @@ def clear_conditional_formatting(spreadsheet_id: str,
                                  rule_id: int = None,
                                  ctx: Context = None) -> Dict[str, Any]:
     """
-    Remove specific conditional formatting rules or all rules from a sheet.
+    Remove conditional formatting rule(s) from sheet.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet_name: Name of the sheet (case-sensitive)
-        rule_id: ID of the rule to remove. If not provided, removes all rules from the sheet.
-
-    Returns:
-        Dictionary with success status and removal details
+        spreadsheet_id: Spreadsheet ID
+        sheet_name: Sheet name (case-sensitive)
+        rule_id: Index of rule to remove. If omitted, removes all rules from the sheet.
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 

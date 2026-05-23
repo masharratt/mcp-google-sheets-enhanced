@@ -16,23 +16,19 @@ def set_data_validation(spreadsheet_id: str,
                         validation_rule: Dict[str, Any],
                         ctx: Context = None) -> Dict[str, Any]:
     """
-    Set data validation rules for a cell range.
+    Set data validation rule on cell range.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet_name: Name of the sheet (case-sensitive)
-        range: Cell range in A1 notation (e.g., "A1:C10")
-        validation_rule: Dictionary containing validation settings:
-            - condition_type: "NUMBER_BETWEEN", "NUMBER_NOT_BETWEEN", "TEXT_CONTAINS",
-                            "TEXT_NOT_CONTAINS", "TEXT_EQ", "TEXT_IS_VALID_URL",
-                            "ONE_OF_RANGE", "ONE_OF_LIST", "NONE"
-            - values: List of values for the validation condition
-            - strict: bool - whether to reject invalid input
-            - input_message: str - message to show when cell is selected
-            - show_dropdown: bool - show dropdown for list validation
-
-    Returns:
-        Dictionary with success status and validation details
+        spreadsheet_id: Spreadsheet ID
+        sheet_name: Sheet name (case-sensitive)
+        range: A1 range (e.g. "A1:C10")
+        validation_rule: Dict with:
+            - condition_type: 'NUMBER_BETWEEN', 'NUMBER_NOT_BETWEEN', 'TEXT_CONTAINS',
+                'TEXT_NOT_CONTAINS', 'TEXT_EQ', 'TEXT_IS_VALID_URL', 'ONE_OF_RANGE', 'ONE_OF_LIST', 'NONE'
+            - values: Condition values (NUMBER_BETWEEN takes 2; ONE_OF_LIST takes N; ONE_OF_RANGE takes range string)
+            - strict: bool, reject invalid input (default False)
+            - input_message: str, shown when cell selected
+            - show_dropdown: bool, show dropdown for list validation (default True)
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -112,14 +108,11 @@ def list_validation_rules(spreadsheet_id: str,
                           sheet_name: str = None,
                           ctx: Context = None) -> Dict[str, Any]:
     """
-    List existing data validation rules in a sheet or spreadsheet.
+    List data validation rules in sheet or spreadsheet.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet_name: Optional name of the sheet (case-sensitive). If not provided, returns all rules.
-
-    Returns:
-        Dictionary with success status and list of validation rules
+        spreadsheet_id: Spreadsheet ID
+        sheet_name: Sheet name (case-sensitive). Omit to return rules from all sheets.
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -173,15 +166,12 @@ def clear_data_validation(spreadsheet_id: str,
                           range: str,
                           ctx: Context = None) -> Dict[str, Any]:
     """
-    Remove data validation rules from a range of cells.
+    Clear data validation from cell range (setDataValidation with no rule).
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet_name: Name of the sheet (case-sensitive)
-        range: Cell range in A1 notation (e.g., 'A1:C10')
-
-    Returns:
-        Dictionary with success status and validation details
+        spreadsheet_id: Spreadsheet ID
+        sheet_name: Sheet name (case-sensitive)
+        range: A1 range (e.g. 'A1:C10')
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 

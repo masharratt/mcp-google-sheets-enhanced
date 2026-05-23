@@ -20,18 +20,15 @@ def create_developer_metadata(spreadsheet_id: str,
                                sheet: Optional[str] = None,
                                ctx: Context = None) -> Dict[str, Any]:
     """
-    Attach developer metadata (a key/value label) to a spreadsheet or sheet.
+    Attach developer metadata (key/value label) to spreadsheet or sheet.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        metadata_key: Key for the metadata entry
-        metadata_value: Value for the metadata entry
+        spreadsheet_id: Spreadsheet ID
+        metadata_key: Metadata key
+        metadata_value: Metadata value
         visibility: 'DOCUMENT' (default) or 'PROJECT'
         location_type: 'SPREADSHEET' (default) or 'SHEET'
         sheet: Sheet name (required when location_type is 'SHEET')
-
-    Returns:
-        Dictionary with success status and created metadata (including metadataId)
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -91,15 +88,12 @@ def search_developer_metadata(spreadsheet_id: str,
                                metadata_id: Optional[int] = None,
                                ctx: Context = None) -> Dict[str, Any]:
     """
-    Search developer metadata attached to a spreadsheet using dataFilters.
+    Search developer metadata via dataFilters.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        metadata_key: Filter by metadata key (optional)
+        spreadsheet_id: Spreadsheet ID
+        metadata_key: Filter by key (optional)
         metadata_id: Filter by metadata ID (optional)
-
-    Returns:
-        Dictionary with success status and list of matched metadata entries
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 

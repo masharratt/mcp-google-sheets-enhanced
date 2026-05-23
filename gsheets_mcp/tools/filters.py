@@ -15,15 +15,12 @@ def create_filter(spreadsheet_id: str,
                   range: str,
                   ctx: Context = None) -> Dict[str, Any]:
     """
-    Apply filters to a range.
+    Apply basic filter (setBasicFilter) to range.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet_name: Name of the sheet (case-sensitive)
-        range: Cell range in A1 notation (e.g., 'A1:C10')
-
-    Returns:
-        Dictionary with success status and filter details
+        spreadsheet_id: Spreadsheet ID
+        sheet_name: Sheet name (case-sensitive)
+        range: A1 range (e.g. 'A1:C10')
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -75,30 +72,17 @@ def apply_filter_criteria(spreadsheet_id: str,
                           filter_view_id: Optional[int] = None,
                           ctx: Context = None) -> Dict[str, Any]:
     """
-    Set filter conditions on either the sheet's basic filter or a named filter view.
+    Set filter criteria on basic filter or named filter view.
 
-    Contract:
-      - filter_view_id absent (or None): applies criteria to the sheet's basic filter
-        via setBasicFilter. Use this after create_filter().
-      - filter_view_id provided: applies criteria to the named filter view with that ID
-        via updateFilterView. Use this after create_filter_view().
+    filter_view_id absent: applies to basic filter via setBasicFilter (use after create_filter).
+    filter_view_id provided: applies to named filter view via updateFilterView (use after create_filter_view).
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet_name: Name of the sheet (case-sensitive)
-        criteria: Dictionary mapping column-index string to filter criteria. Example:
-            {
-                "0": {  # Column index
-                    "condition": {
-                        "type": "NUMBER_GREATER",
-                        "values": [{"userEnteredValue": "100"}]
-                    }
-                }
-            }
-        filter_view_id: ID of a named filter view to update. Omit to target the basic filter.
-
-    Returns:
-        Dictionary with success status and filter criteria details
+        spreadsheet_id: Spreadsheet ID
+        sheet_name: Sheet name (case-sensitive)
+        criteria: Dict mapping column-index string to filter criteria.
+            Example: {"0": {"condition": {"type": "NUMBER_GREATER", "values": [{"userEnteredValue": "100"}]}}}
+        filter_view_id: ID of filter view to update. Omit to target basic filter.
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -169,14 +153,11 @@ def clear_filter(spreadsheet_id: str,
                  sheet_name: str,
                  ctx: Context = None) -> Dict[str, Any]:
     """
-    Remove filters from a sheet.
+    Remove basic filter from sheet (clearBasicFilter).
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet_name: Name of the sheet (case-sensitive)
-
-    Returns:
-        Dictionary with success status and clear operation details
+        spreadsheet_id: Spreadsheet ID
+        sheet_name: Sheet name (case-sensitive)
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -219,18 +200,15 @@ def create_filter_view(spreadsheet_id: str,
                        criteria: Optional[Dict[str, Any]] = None,
                        ctx: Context = None) -> Dict[str, Any]:
     """
-    Create a named, saved filter view over a range (addFilterView).
+    Create named saved filter view over range (addFilterView).
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet: Name of the sheet (case-sensitive)
-        range: Cell range in A1 notation (e.g., 'A1:D10')
-        title: Display name for the filter view
-        criteria: Optional dict mapping column index string to filter criteria.
+        spreadsheet_id: Spreadsheet ID
+        sheet: Sheet name (case-sensitive)
+        range: A1 range (e.g. 'A1:D10')
+        title: Display name for filter view
+        criteria: Optional dict mapping column-index string to filter criteria.
             Example: {"0": {"condition": {"type": "NUMBER_GREATER", "values": [{"userEnteredValue": "100"}]}}}
-
-    Returns:
-        Dictionary with success status, filter_view_id, and title
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -294,14 +272,11 @@ def delete_filter_view(spreadsheet_id: str,
                        filter_view_id: int,
                        ctx: Context = None) -> Dict[str, Any]:
     """
-    Delete a named filter view by its ID (deleteFilterView).
+    Delete named filter view by ID (deleteFilterView).
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        filter_view_id: Integer ID of the filter view to delete
-
-    Returns:
-        Dictionary with success status and filter_view_id
+        spreadsheet_id: Spreadsheet ID
+        filter_view_id: Integer ID of filter view to delete
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 

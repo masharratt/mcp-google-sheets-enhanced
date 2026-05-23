@@ -366,23 +366,21 @@ def apply_dashboard_template(
     ctx: Context = None,
 ) -> Dict[str, Any]:
     """
-    Apply a declarative dashboard template to a sheet in one batchUpdate call.
+    Apply declarative dashboard template to sheet in one batchUpdate.
 
-    Loads a pre-defined template spec from gsheets_mcp/templates/<template_name>.json,
-    substitutes {title} and {data_range} placeholders, converts each block to API
-    request dicts via the pure builders, and issues one batchUpdate.
+    Loads template from gsheets_mcp/templates/<template_name>.json, substitutes
+    {title}/{data_range} placeholders, converts blocks to API requests.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet.
-        sheet: Sheet name (case-sensitive).
-        template_name: Template to apply. Built-in options: 'kpi_overview', 'sales_dashboard'.
-        data_range: A1 range for chart/table data (e.g. 'A7:F50'). Defaults to the
-            template's own banded_table range when omitted.
-        title: Dashboard title text. Defaults to the template's default text.
+        spreadsheet_id: Spreadsheet ID
+        sheet: Sheet name (case-sensitive)
+        template_name: Built-in templates: 'kpi_overview', 'sales_dashboard'
+        data_range: A1 range for chart/table data (e.g. 'A7:F50'). Defaults to template's banded_table range.
+        title: Dashboard title. Defaults to template's default text.
 
     Returns:
         On success: {success: True, template, sheet, blocks_applied, request_count, spreadsheetId}
-        On failure: {success: False, message: <reason>}
+        On failure: {success: False, message: reason}
     """
     # --- Validate template ---
     spec = _load_template(template_name)

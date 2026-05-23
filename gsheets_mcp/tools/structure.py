@@ -17,16 +17,13 @@ def add_rows(spreadsheet_id: str,
              start_row: Optional[int] = None,
              ctx: Context = None) -> Dict[str, Any]:
     """
-    Add rows to a sheet in a Google Spreadsheet.
+    Add rows to sheet (insertDimension).
 
     Args:
-        spreadsheet_id: The ID of the spreadsheet (found in the URL)
-        sheet: The name of the sheet
+        spreadsheet_id: Spreadsheet ID
+        sheet: Sheet name
         count: Number of rows to add
-        start_row: 0-based row index to start adding. If not provided, adds at the beginning.
-
-    Returns:
-        Result of the operation
+        start_row: 0-based row index. Omit to add at beginning.
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -75,16 +72,13 @@ def add_columns(spreadsheet_id: str,
                 start_column: Optional[int] = None,
                 ctx: Context = None) -> Dict[str, Any]:
     """
-    Add columns to a sheet in a Google Spreadsheet.
+    Add columns to sheet (insertDimension).
 
     Args:
-        spreadsheet_id: The ID of the spreadsheet (found in the URL)
-        sheet: The name of the sheet
+        spreadsheet_id: Spreadsheet ID
+        sheet: Sheet name
         count: Number of columns to add
-        start_column: 0-based column index to start adding. If not provided, adds at the beginning.
-
-    Returns:
-        Result of the operation
+        start_column: 0-based column index. Omit to add at beginning.
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -134,17 +128,14 @@ def delete_rows_columns(spreadsheet_id: str,
                         end_index: int,
                         ctx: Context = None) -> Dict[str, Any]:
     """
-    Delete rows or columns.
+    Delete rows or columns (deleteDimension).
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet_name: Name of the sheet (case-sensitive)
+        spreadsheet_id: Spreadsheet ID
+        sheet_name: Sheet name (case-sensitive)
         dimension: 'ROWS' or 'COLUMNS'
-        start_index: Zero-based start index
-        end_index: Zero-based end index (exclusive)
-
-    Returns:
-        Dictionary with success status and deletion details
+        start_index: 0-based start index (inclusive)
+        end_index: 0-based end index (exclusive)
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -192,27 +183,13 @@ def auto_resize_dimensions(spreadsheet_id: str,
                            dimensions: Dict[str, Any],
                            ctx: Context = None) -> Dict[str, Any]:
     """
-    Auto-fit row and column sizes.
+    Auto-fit row and/or column sizes (autoResizeDimensions).
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet_name: Name of the sheet (case-sensitive)
-        dimensions: Dictionary with dimensions to resize. Example:
-            {
-                "columns": {
-                    "dimension": "COLUMNS",
-                    "startIndex": 0,
-                    "endIndex": 10
-                },
-                "rows": {
-                    "dimension": "ROWS",
-                    "startIndex": 0,
-                    "endIndex": 20
-                }
-            }
-
-    Returns:
-        Dictionary with success status and resize details
+        spreadsheet_id: Spreadsheet ID
+        sheet_name: Sheet name (case-sensitive)
+        dimensions: Dict with 'columns' and/or 'rows' keys, each: {startIndex, endIndex}.
+            Example: {"columns": {"startIndex": 0, "endIndex": 10}, "rows": {"startIndex": 0, "endIndex": 20}}
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -281,17 +258,14 @@ def insert_rows(spreadsheet_id: str,
                 inherit_from_before: bool = True,
                 ctx: Context = None) -> Dict[str, Any]:
     """
-    Insert N rows at a given 0-based index via insertDimension.
+    Insert N rows at 0-based index (insertDimension).
 
     Args:
-        spreadsheet_id: The ID of the spreadsheet (found in the URL)
-        sheet: The name of the sheet
-        start_index: 0-based row index where rows will be inserted
+        spreadsheet_id: Spreadsheet ID
+        sheet: Sheet name
+        start_index: 0-based row index for insertion
         count: Number of rows to insert
-        inherit_from_before: Whether new rows inherit formatting from the row before (default True)
-
-    Returns:
-        Result of the operation
+        inherit_from_before: Inherit formatting from row above (default True)
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -333,17 +307,14 @@ def insert_columns(spreadsheet_id: str,
                    inherit_from_before: bool = True,
                    ctx: Context = None) -> Dict[str, Any]:
     """
-    Insert N columns at a given 0-based index via insertDimension.
+    Insert N columns at 0-based index (insertDimension).
 
     Args:
-        spreadsheet_id: The ID of the spreadsheet (found in the URL)
-        sheet: The name of the sheet
-        start_index: 0-based column index where columns will be inserted
+        spreadsheet_id: Spreadsheet ID
+        sheet: Sheet name
+        start_index: 0-based column index for insertion
         count: Number of columns to insert
-        inherit_from_before: Whether new columns inherit formatting from the column before (default True)
-
-    Returns:
-        Result of the operation
+        inherit_from_before: Inherit formatting from column before (default True)
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -384,16 +355,13 @@ def delete_columns(spreadsheet_id: str,
                    end_index: int,
                    ctx: Context = None) -> Dict[str, Any]:
     """
-    Delete columns via deleteDimension (column-only convenience wrapper).
+    Delete columns (deleteDimension, column-only wrapper).
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet: Name of the sheet (case-sensitive)
+        spreadsheet_id: Spreadsheet ID
+        sheet: Sheet name (case-sensitive)
         start_index: 0-based start column index (inclusive)
         end_index: 0-based end column index (exclusive)
-
-    Returns:
-        Dictionary with success status and deletion details
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -438,16 +406,13 @@ def freeze_dimensions(spreadsheet_id: str,
                       frozen_columns: Optional[int] = None,
                       ctx: Context = None) -> Dict[str, Any]:
     """
-    Freeze rows and/or columns via updateSheetProperties.
+    Freeze rows and/or columns (updateSheetProperties). At least one of frozen_rows/frozen_columns required.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet: Name of the sheet (case-sensitive)
-        frozen_rows: Number of rows to freeze (omit to leave unchanged)
-        frozen_columns: Number of columns to freeze (omit to leave unchanged)
-
-    Returns:
-        Dictionary with success status
+        spreadsheet_id: Spreadsheet ID
+        sheet: Sheet name (case-sensitive)
+        frozen_rows: Rows to freeze (omit to leave unchanged)
+        frozen_columns: Columns to freeze (omit to leave unchanged)
     """
     if frozen_rows is None and frozen_columns is None:
         return {"error": "At least one of frozen_rows or frozen_columns must be specified", "success": False}
@@ -490,18 +455,15 @@ def set_dimension_size(spreadsheet_id: str,
                        pixel_size: int,
                        ctx: Context = None) -> Dict[str, Any]:
     """
-    Manually resize rows or columns to a given pixel size via updateDimensionProperties.
+    Set row/column size to exact pixel size (updateDimensionProperties).
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet: Name of the sheet (case-sensitive)
+        spreadsheet_id: Spreadsheet ID
+        sheet: Sheet name (case-sensitive)
         dimension: 'ROWS' or 'COLUMNS'
         start_index: 0-based start index (inclusive)
         end_index: 0-based end index (exclusive)
         pixel_size: Target pixel size
-
-    Returns:
-        Dictionary with success status
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -549,17 +511,14 @@ def group_dimensions(spreadsheet_id: str,
                      end_index: int,
                      ctx: Context = None) -> Dict[str, Any]:
     """
-    Group rows or columns via addDimensionGroup.
+    Group rows or columns (addDimensionGroup, creates collapsible group).
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet: Name of the sheet (case-sensitive)
+        spreadsheet_id: Spreadsheet ID
+        sheet: Sheet name (case-sensitive)
         dimension: 'ROWS' or 'COLUMNS'
         start_index: 0-based start index (inclusive)
         end_index: 0-based end index (exclusive)
-
-    Returns:
-        Dictionary with success status
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -603,17 +562,14 @@ def ungroup_dimensions(spreadsheet_id: str,
                        end_index: int,
                        ctx: Context = None) -> Dict[str, Any]:
     """
-    Ungroup rows or columns via deleteDimensionGroup.
+    Ungroup rows or columns (deleteDimensionGroup).
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet: Name of the sheet (case-sensitive)
+        spreadsheet_id: Spreadsheet ID
+        sheet: Sheet name (case-sensitive)
         dimension: 'ROWS' or 'COLUMNS'
         start_index: 0-based start index (inclusive)
         end_index: 0-based end index (exclusive)
-
-    Returns:
-        Dictionary with success status
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -657,18 +613,13 @@ def sort_range(spreadsheet_id: str,
                sort_specs: List[Dict[str, Any]],
                ctx: Context = None) -> Dict[str, Any]:
     """
-    Sort a grid range by one or more columns via sortRange.
+    Sort range by one or more columns (sortRange).
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet: Name of the sheet (case-sensitive)
-        range: A1 notation range to sort (e.g. 'A1:D10')
-        sort_specs: List of sort specifications, each with:
-            dimension_index (int): 0-based column index to sort by
-            sort_order (str): 'ASCENDING' or 'DESCENDING'
-
-    Returns:
-        Dictionary with success status
+        spreadsheet_id: Spreadsheet ID
+        sheet: Sheet name (case-sensitive)
+        range: A1 range to sort (e.g. 'A1:D10')
+        sort_specs: List of {dimension_index: int (0-based col), sort_order: 'ASCENDING'|'DESCENDING'}
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 

@@ -52,15 +52,12 @@ def create_named_range(spreadsheet_id: str,
                        range: str,
                        ctx: Context = None) -> Dict[str, Any]:
     """
-    Define named ranges for easier reference.
+    Create named range.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        name: Name for the named range
-        range: Cell range in A1 notation (e.g., 'Sheet1!A1:C10')
-
-    Returns:
-        Dictionary with success status and named range details
+        spreadsheet_id: Spreadsheet ID
+        name: Name for range
+        range: A1 range with optional sheet prefix (e.g. 'Sheet1!A1:C10')
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -106,13 +103,10 @@ def create_named_range(spreadsheet_id: str,
 def list_named_ranges(spreadsheet_id: str,
                       ctx: Context = None) -> Dict[str, Any]:
     """
-    Get all named ranges in a spreadsheet.
+    List all named ranges in spreadsheet.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-
-    Returns:
-        Dictionary with success status and list of named ranges
+        spreadsheet_id: Spreadsheet ID
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -150,15 +144,12 @@ def update_named_range(spreadsheet_id: str,
                        new_range: str,
                        ctx: Context = None) -> Dict[str, Any]:
     """
-    Modify existing named ranges.
+    Update range of existing named range.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        name: Current name of the named range
-        new_range: New cell range in A1 notation
-
-    Returns:
-        Dictionary with success status and updated named range details
+        spreadsheet_id: Spreadsheet ID
+        name: Current name of named range
+        new_range: New A1 range (with optional sheet prefix)
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 

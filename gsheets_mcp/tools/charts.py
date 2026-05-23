@@ -19,23 +19,15 @@ def create_chart(spreadsheet_id: str,
                  title: str = None,
                  ctx: Context = None) -> Dict[str, Any]:
     """
-    Create charts in Google Sheets.
+    Create chart in Google Sheets.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet_name: Name of the sheet (case-sensitive)
-        chart_type: Type of chart ('COLUMN', 'BAR', 'LINE', 'PIE', 'SCATTER', 'AREA')
-        data_range: Data range for the chart (e.g., 'A1:C10')
-        position: Dictionary with chart position. Example:
-            {
-                "sheetId": 0,
-                "rowIndex": 10,
-                "columnIndex": 5
-            }
+        spreadsheet_id: Spreadsheet ID
+        sheet_name: Sheet name (case-sensitive)
+        chart_type: 'COLUMN', 'BAR', 'LINE', 'PIE', 'SCATTER', or 'AREA'
+        data_range: A1 range for chart data (e.g. 'A1:C10')
+        position: Anchor position dict: {"sheetId": 0, "rowIndex": 10, "columnIndex": 5}
         title: Optional chart title
-
-    Returns:
-        Dictionary with success status and chart details
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -113,24 +105,14 @@ def update_chart(spreadsheet_id: str,
                  properties: Dict[str, Any],
                  ctx: Context = None) -> Dict[str, Any]:
     """
-    Modify chart properties.
-
-    Reads the existing chart spec first, merges the requested changes into it,
-    then sends the complete merged chartSpec. This preserves the required
-    chart-type body (basicChart, pieChart, etc.) which the API mandates.
+    Update chart properties. Reads existing spec, merges changes, sends complete merged chartSpec
+    (preserves required chart-type body: basicChart, pieChart, etc.).
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet_name: Name of the sheet (case-sensitive)
-        chart_id: ID of the chart to update
-        properties: Dictionary with chart properties to update. Example:
-            {
-                "title": "New Chart Title",
-                "backgroundColor": {"red": 0.9, "green": 0.9, "blue": 0.9}
-            }
-
-    Returns:
-        Dictionary with success status and updated chart details
+        spreadsheet_id: Spreadsheet ID
+        sheet_name: Sheet name (case-sensitive)
+        chart_id: ID of chart to update
+        properties: Chart spec properties to update, e.g. {"title": "New Title", "backgroundColor": {...}}
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -187,14 +169,11 @@ def delete_chart(spreadsheet_id: str,
                  chart_id: int,
                  ctx: Context = None) -> Dict[str, Any]:
     """
-    Delete a chart from a Google Spreadsheet.
+    Delete chart (embedded object) from spreadsheet.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        chart_id: ID of the chart (embedded object) to delete
-
-    Returns:
-        Dictionary with success status and chart_id
+        spreadsheet_id: Spreadsheet ID
+        chart_id: ID of chart to delete
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -234,22 +213,14 @@ def move_resize_chart(spreadsheet_id: str,
                       position: Dict[str, Any],
                       ctx: Context = None) -> Dict[str, Any]:
     """
-    Position and resize charts.
+    Move and/or resize chart.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet_name: Name of the sheet (case-sensitive)
-        chart_id: ID of the chart to move/resize
-        position: Dictionary with new position. Example:
-            {
-                "rowIndex": 15,
-                "columnIndex": 8,
-                "offsetXPixels": 10,
-                "offsetYPixels": 10
-            }
-
-    Returns:
-        Dictionary with success status and position details
+        spreadsheet_id: Spreadsheet ID
+        sheet_name: Sheet name (case-sensitive)
+        chart_id: ID of chart to move/resize
+        position: New position dict: {"rowIndex": 15, "columnIndex": 8, "offsetXPixels": 10,
+            "offsetYPixels": 10, "widthPixels": 600, "heightPixels": 400} (widthPixels/heightPixels optional)
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 

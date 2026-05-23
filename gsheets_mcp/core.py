@@ -140,6 +140,32 @@ mcp = FastMCP("Google Spreadsheet",
               port=_resolved_port)
 
 
+def _strip_schema_titles() -> None:
+    """
+    Remove redundant 'title' keys from every registered tool's input schema.
+
+    FastMCP/pydantic auto-generates a 'title' for each parameter
+    ("Spreadsheet Id") plus a top-level "<tool>Arguments" title. These carry
+    no semantic value (the model already sees the property key) and cost
+    ~2,500 tokens of MCP context across the full tool set. Stripping them is
+    safe: 'title' is an optional JSON-Schema annotation no client requires.
+
+    Must be called AFTER all tool modules have imported and registered, i.e.
+    at the end of gsheets_mcp/tools/__init__.py.
+    """
+    def _strip(obj: Any) -> None:
+        if isinstance(obj, dict):
+            obj.pop("title", None)
+            for value in obj.values():
+                _strip(value)
+        elif isinstance(obj, list):
+            for item in obj:
+                _strip(item)
+
+    for tool in mcp._tool_manager._tools.values():
+        _strip(tool.parameters)
+
+
 # ===== Shared Helper Functions =====
 # Used across multiple tool modules. Conditional-formatting-only helpers
 # (_normalize_condition_type, _build_condition_values, _build_gradient_rule)

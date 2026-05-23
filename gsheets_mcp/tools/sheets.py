@@ -14,15 +14,11 @@ from gsheets_mcp.core import mcp, _get_sheet_id
 @mcp.tool()
 def create_spreadsheet(title: str, folder_id: Optional[str] = None, ctx: Context = None) -> Dict[str, Any]:
     """
-    Create a new Google Spreadsheet.
+    Create new Google Spreadsheet.
 
     Args:
-        title: The title of the new spreadsheet
-        folder_id: Optional Google Drive folder ID where the spreadsheet should be created.
-                  If not provided, uses the configured default folder or creates in root.
-
-    Returns:
-        Information about the newly created spreadsheet including its ID
+        title: Spreadsheet title
+        folder_id: Drive folder ID. Omit to use configured default or root.
     """
     drive_service = ctx.request_context.lifespan_context.drive_service
     # Use provided folder_id or fall back to configured default
@@ -59,14 +55,11 @@ def create_sheet(spreadsheet_id: str,
                 title: str,
                 ctx: Context = None) -> Dict[str, Any]:
     """
-    Create a new sheet tab in an existing Google Spreadsheet.
+    Add new sheet tab to existing spreadsheet.
 
     Args:
-        spreadsheet_id: The ID of the spreadsheet
-        title: The title for the new sheet
-
-    Returns:
-        Information about the newly created sheet
+        spreadsheet_id: Spreadsheet ID
+        title: Title for new sheet
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -103,15 +96,10 @@ def create_sheet(spreadsheet_id: str,
 @mcp.tool()
 def list_spreadsheets(folder_id: Optional[str] = None, ctx: Context = None) -> List[Dict[str, str]]:
     """
-    List all spreadsheets in the specified Google Drive folder.
-    If no folder is specified, uses the configured default folder or lists from 'My Drive'.
+    List spreadsheets in Drive folder.
 
     Args:
-        folder_id: Optional Google Drive folder ID to search in.
-                  If not provided, uses the configured default folder or searches 'My Drive'.
-
-    Returns:
-        List of spreadsheets with their ID and title
+        folder_id: Drive folder ID. Omit to use configured default or 'My Drive'.
     """
     drive_service = ctx.request_context.lifespan_context.drive_service
     # Use provided folder_id or fall back to configured default
@@ -144,15 +132,10 @@ def list_spreadsheets(folder_id: Optional[str] = None, ctx: Context = None) -> L
 @mcp.tool()
 def list_folders(parent_folder_id: Optional[str] = None, ctx: Context = None) -> List[Dict[str, str]]:
     """
-    List all folders in the specified Google Drive folder.
-    If no parent folder is specified, lists folders from 'My Drive' root.
+    List Drive folders.
 
     Args:
-        parent_folder_id: Optional Google Drive folder ID to search within.
-                         If not provided, searches the root of 'My Drive'.
-
-    Returns:
-        List of folders with their ID, name, and parent information
+        parent_folder_id: Parent folder ID to search within. Omit for 'My Drive' root.
     """
     drive_service = ctx.request_context.lifespan_context.drive_service
 
@@ -195,15 +178,12 @@ def rename_sheet(spreadsheet: str,
                  new_name: str,
                  ctx: Context = None) -> Dict[str, Any]:
     """
-    Rename a sheet in a Google Spreadsheet.
+    Rename sheet tab.
 
     Args:
         spreadsheet: Spreadsheet ID
         sheet: Current sheet name
         new_name: New sheet name
-
-    Returns:
-        Result of the operation
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -250,16 +230,13 @@ def copy_sheet(src_spreadsheet: str,
                dst_sheet: str,
                ctx: Context = None) -> Dict[str, Any]:
     """
-    Copy a sheet from one spreadsheet to another.
+    Copy sheet from one spreadsheet to another.
 
     Args:
         src_spreadsheet: Source spreadsheet ID
         src_sheet: Source sheet name
         dst_spreadsheet: Destination spreadsheet ID
         dst_sheet: Destination sheet name
-
-    Returns:
-        Result of the operation
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -323,21 +300,13 @@ def share_spreadsheet(spreadsheet_id: str,
                       send_notification: bool = True,
                       ctx: Context = None) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Share a Google Spreadsheet with multiple users via email, assigning specific roles.
+    Share spreadsheet with multiple users.
 
     Args:
-        spreadsheet_id: The ID of the spreadsheet to share.
-        recipients: A list of dictionaries, each containing 'email_address' and 'role'.
-                    The role should be one of: 'reader', 'commenter', 'writer'.
-                    Example: [
-                        {'email_address': 'user1@example.com', 'role': 'writer'},
-                        {'email_address': 'user2@example.com', 'role': 'reader'}
-                    ]
-        send_notification: Whether to send a notification email to the users. Defaults to True.
-
-    Returns:
-        A dictionary containing lists of 'successes' and 'failures'.
-        Each item in the lists includes the email address and the outcome.
+        spreadsheet_id: Spreadsheet ID
+        recipients: List of {email_address, role} dicts. Role: 'reader', 'commenter', or 'writer'.
+            Example: [{"email_address": "user@example.com", "role": "writer"}]
+        send_notification: Send notification email (default True)
     """
     drive_service = ctx.request_context.lifespan_context.drive_service
     successes = []
@@ -403,20 +372,13 @@ def duplicate_sheet(spreadsheet_id: str,
                     insert_index: Optional[int] = None,
                     ctx: Context = None) -> Dict[str, Any]:
     """
-    Duplicate a sheet within the same spreadsheet.
-
-    Copies the source sheet to a new tab inside the same spreadsheet.
-    This differs from copy_sheet, which copies a sheet to a different spreadsheet.
+    Duplicate sheet within same spreadsheet (differs from copy_sheet which targets another spreadsheet).
 
     Args:
-        spreadsheet_id: The ID of the spreadsheet.
-        source_sheet: Name of the sheet tab to duplicate.
-        new_sheet_name: Name for the new duplicate sheet.
-        insert_index: Optional 0-based position where the new sheet should be inserted.
-                      If omitted, the sheet is placed after the source sheet.
-
-    Returns:
-        Information about the newly created sheet including sheetId, title, and spreadsheetId.
+        spreadsheet_id: Spreadsheet ID
+        source_sheet: Sheet tab to duplicate
+        new_sheet_name: Name for duplicate sheet
+        insert_index: 0-based position for new sheet. Omit to place after source.
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -457,17 +419,11 @@ def delete_sheet(spreadsheet_id: str,
                  sheet: str,
                  ctx: Context = None) -> Dict[str, Any]:
     """
-    Delete a sheet (tab) from a spreadsheet.
-
-    Permanently removes the named sheet and all its data. A spreadsheet must
-    retain at least one sheet, so deleting the last remaining sheet fails.
+    Delete sheet tab and all its data. Spreadsheet must retain at least one sheet.
 
     Args:
-        spreadsheet_id: The ID of the spreadsheet.
-        sheet: Name of the sheet tab to delete (case-sensitive).
-
-    Returns:
-        Dictionary with success status and the deleted sheet name and id.
+        spreadsheet_id: Spreadsheet ID
+        sheet: Sheet tab name to delete (case-sensitive)
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -505,15 +461,12 @@ def set_sheet_visibility(spreadsheet_id: str,
                          hidden: bool,
                          ctx: Context = None) -> Dict[str, Any]:
     """
-    Show or hide a sheet tab in a Google Spreadsheet.
+    Show or hide sheet tab.
 
     Args:
-        spreadsheet_id: The ID of the spreadsheet.
-        sheet: Name of the sheet tab to show or hide.
-        hidden: True to hide the sheet, False to make it visible.
-
-    Returns:
-        Confirmation with spreadsheetId, sheet name, and the hidden state applied.
+        spreadsheet_id: Spreadsheet ID
+        sheet: Sheet tab name
+        hidden: True to hide, False to show
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -554,15 +507,12 @@ def reorder_sheet(spreadsheet_id: str,
                   new_index: int,
                   ctx: Context = None) -> Dict[str, Any]:
     """
-    Move a sheet tab to a new position within a Google Spreadsheet.
+    Reorder sheet tab to new position.
 
     Args:
-        spreadsheet_id: The ID of the spreadsheet.
-        sheet: Name of the sheet tab to move.
-        new_index: 0-based position the sheet should occupy after the move.
-
-    Returns:
-        Confirmation with spreadsheetId, sheet name, and new_index applied.
+        spreadsheet_id: Spreadsheet ID
+        sheet: Sheet tab name
+        new_index: 0-based target position
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -603,19 +553,12 @@ def move_spreadsheet_to_folder(spreadsheet_id: str,
                                 remove_from_current: bool = True,
                                 ctx: Context = None) -> Dict[str, Any]:
     """
-    Move a Google Spreadsheet to a different Drive folder.
-
-    Uses the Drive API files.update with addParents and, by default, removeParents
-    to relocate the file without creating duplicate folder memberships.
+    Move spreadsheet to different Drive folder (files.update addParents/removeParents).
 
     Args:
-        spreadsheet_id: The ID of the spreadsheet (Drive file ID).
-        target_folder_id: ID of the destination Drive folder.
-        remove_from_current: When True (default), removes the file from its current
-                             parent folders before adding it to the target folder.
-
-    Returns:
-        Confirmation with spreadsheetId and target_folder_id.
+        spreadsheet_id: Spreadsheet ID (Drive file ID)
+        target_folder_id: Destination Drive folder ID
+        remove_from_current: True (default) removes from current parents to avoid duplicate folder membership
     """
     drive_service = ctx.request_context.lifespan_context.drive_service
 
@@ -649,16 +592,11 @@ def move_spreadsheet_to_folder(spreadsheet_id: str,
 def trash_spreadsheet(spreadsheet_id: str,
                       ctx: Context = None) -> Dict[str, Any]:
     """
-    Move a Google Spreadsheet to Drive trash. This is RECOVERABLE and NOT permanent deletion.
-
-    The file is moved to the Drive trash and can be restored by the owner from
-    drive.google.com within 30 days. It is not permanently deleted.
+    Move spreadsheet to Drive trash (RECOVERABLE, not permanent deletion).
+    Owner can restore from drive.google.com within 30 days.
 
     Args:
-        spreadsheet_id: The ID of the spreadsheet to trash.
-
-    Returns:
-        Confirmation with spreadsheetId and trashed=True.
+        spreadsheet_id: Spreadsheet ID to trash
     """
     drive_service = ctx.request_context.lifespan_context.drive_service
 

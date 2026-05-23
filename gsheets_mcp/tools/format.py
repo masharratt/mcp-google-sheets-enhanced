@@ -17,30 +17,20 @@ def apply_cell_formatting(spreadsheet_id: str,
                         formatting: Dict[str, Any],
                         ctx: Context = None) -> Dict[str, Any]:
     """
-    Apply comprehensive cell formatting to a range of cells.
+    Apply cell formatting to range. Prefer apply_text_formatting for font/color only, add_cell_borders for borders only.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet_name: Name of the sheet (case-sensitive)
-        range: Cell range in A1 notation (e.g., "A1:C10")
-        formatting: Dictionary containing formatting options:
-            - text_format: Dict with font formatting
-                * bold: bool
-                * italic: bool
-                * underline: bool
-                * strikethrough: bool
-                * font_family: str
-                * font_size: int
-                * foreground_color: Dict (red, green, blue, alpha)
-                * background_color: Dict (red, green, blue, alpha)
-            - alignment: Dict with alignment options
-                * horizontal: "LEFT", "CENTER", "RIGHT"
-                * vertical: "TOP", "MIDDLE", "BOTTOM"
-                * wrap_strategy: "OVERFLOW_CELL", "CLIP", "WRAP"
-            - borders: Dict with border formatting
-                * top/bottom/left/right: Dict with style and color
-    Returns:
-        Dictionary with success status and details
+        spreadsheet_id: Spreadsheet ID
+        sheet_name: Sheet name (case-sensitive)
+        range: A1 range (e.g. "A1:C10")
+        formatting: Dict with any of:
+            - text_format: {bold, italic, underline, strikethrough, font_family, font_size,
+                foreground_color: {red,green,blue,alpha}, background_color: {red,green,blue,alpha}}
+            - alignment: {horizontal: LEFT|CENTER|RIGHT, vertical: TOP|MIDDLE|BOTTOM,
+                wrap_strategy: OVERFLOW_CELL|CLIP|WRAP}
+            - background_color: {red,green,blue,alpha}
+            - borders: {top/bottom/left/right: {style, color}}
+            - number_format: {type, pattern}
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -129,17 +119,14 @@ def set_number_format(spreadsheet_id: str,
                       pattern: str = None,
                       ctx: Context = None) -> Dict[str, Any]:
     """
-    Set number format for cells (currency, dates, percentages, etc.).
+    Set number format for cells.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet_name: Name of the sheet (case-sensitive)
-        range: Cell range in A1 notation (e.g., 'A1:C10')
-        number_format: Number format type ('TEXT', 'NUMBER', 'CURRENCY', 'PERCENT', 'DATE', 'TIME', 'DATE_TIME', 'SCIENTIFIC')
-        pattern: Custom format pattern (optional, overrides number_format)
-
-    Returns:
-        Dictionary with success status and updated range information
+        spreadsheet_id: Spreadsheet ID
+        sheet_name: Sheet name (case-sensitive)
+        range: A1 range (e.g. 'A1:C10')
+        number_format: 'TEXT', 'NUMBER', 'CURRENCY', 'PERCENT', 'DATE', 'TIME', 'DATE_TIME', or 'SCIENTIFIC'
+        pattern: Custom format pattern (e.g. '$#,##0.00'). Overrides number_format when provided.
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -216,23 +203,15 @@ def add_cell_borders(spreadsheet_id: str,
                      borders: Dict[str, Any],
                      ctx: Context = None) -> Dict[str, Any]:
     """
-    Add borders to cells with customizable styles and colors.
+    Add borders to cell range.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet_name: Name of the sheet (case-sensitive)
-        range: Cell range in A1 notation (e.g., 'A1:C10')
-        borders: Dictionary defining border styles. Example:
-            {
-                "top": {"style": "SOLID", "color": {"red": 0, "green": 0, "blue": 0}},
-                "bottom": {"style": "SOLID", "color": {"red": 0, "green": 0, "blue": 0}},
-                "left": {"style": "SOLID", "color": {"red": 0, "green": 0, "blue": 0}},
-                "right": {"style": "SOLID", "color": {"red": 0, "green": 0, "blue": 0}}
-            }
-            Styles: NONE, SOLID, SOLID_MEDIUM, DOTTED, DASHED, DOUBLE, SOLID_THICK
-
-    Returns:
-        Dictionary with success status and border details
+        spreadsheet_id: Spreadsheet ID
+        sheet_name: Sheet name (case-sensitive)
+        range: A1 range (e.g. 'A1:C10')
+        borders: Dict with any of top/bottom/left/right keys, each:
+            {"style": "SOLID", "color": {"red": 0, "green": 0, "blue": 0}}
+            Styles: NONE, SOLID, SOLID_MEDIUM, SOLID_THICK, DOTTED, DASHED, DOUBLE
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -301,31 +280,17 @@ def apply_text_formatting(spreadsheet_id: str,
                           text_formatting: Dict[str, Any],
                           ctx: Context = None) -> Dict[str, Any]:
     """
-    Apply text formatting to cells (font styles, alignment, colors).
+    Apply text/font formatting to cell range.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet_name: Name of the sheet (case-sensitive)
-        range: Cell range in A1 notation (e.g., 'A1:C10')
-        text_formatting: Dictionary with formatting options:
-            {
-                "font_family": "Arial",
-                "font_size": 12,
-                "bold": true,
-                "italic": false,
-                "underline": false,
-                "strikethrough": false,
-                "foreground_color": {"red": 1, "green": 0, "blue": 0},
-                "background_color": {"red": 1, "green": 1, "blue": 0},
-                "horizontal_alignment": "CENTER",
-                "vertical_alignment": "MIDDLE",
-                "wrap_text": true
-            }
-            horizontal_alignment: LEFT, CENTER, RIGHT
-            vertical_alignment: TOP, MIDDLE, BOTTOM
-
-    Returns:
-        Dictionary with success status and formatting details
+        spreadsheet_id: Spreadsheet ID
+        sheet_name: Sheet name (case-sensitive)
+        range: A1 range (e.g. 'A1:C10')
+        text_formatting: Dict with any of: font_family (str), font_size (int), bold (bool),
+            italic (bool), underline (bool), strikethrough (bool),
+            foreground_color ({red,green,blue}), background_color ({red,green,blue}),
+            horizontal_alignment (LEFT|CENTER|RIGHT), vertical_alignment (TOP|MIDDLE|BOTTOM),
+            wrap_text (bool)
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -418,13 +383,10 @@ def merge_cells(spreadsheet_id: str,
     Merge or unmerge cells.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet_name: Name of the sheet (case-sensitive)
-        range: Cell range in A1 notation (e.g., 'A1:C10')
-        merge_type: Type of merge ('MERGE_ALL', 'MERGE_COLUMNS', 'MERGE_ROWS', 'UNMERGE')
-
-    Returns:
-        Dictionary with success status and merge details
+        spreadsheet_id: Spreadsheet ID
+        sheet_name: Sheet name (case-sensitive)
+        range: A1 range (e.g. 'A1:C10')
+        merge_type: 'MERGE_ALL', 'MERGE_COLUMNS', 'MERGE_ROWS', or 'UNMERGE'
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -480,21 +442,13 @@ def move_range(spreadsheet_id: str,
                destination: Dict[str, Any],
                ctx: Context = None) -> Dict[str, Any]:
     """
-    Move data ranges.
+    Move data range to new position (moveDimension on ROWS).
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet_name: Name of the sheet (case-sensitive)
-        source_range: Source range in A1 notation (e.g., 'A1:C10')
-        destination: Dictionary with destination position. Example:
-            {
-                "sheetId": 0,
-                "rowIndex": 5,
-                "columnIndex": 2
-            }
-
-    Returns:
-        Dictionary with success status and move details
+        spreadsheet_id: Spreadsheet ID
+        sheet_name: Sheet name (case-sensitive)
+        source_range: A1 source range (e.g. 'A1:C10')
+        destination: Destination dict: {"sheetId": 0, "rowIndex": 5, "columnIndex": 2}
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -547,19 +501,16 @@ def add_banding(spreadsheet_id: str,
                 apply_to: str = 'ROWS',
                 ctx: Context = None) -> Dict[str, Any]:
     """
-    Apply alternating row or column color bands over a range (addBanding).
+    Apply alternating color bands over range (addBanding).
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet: Name of the sheet (case-sensitive)
-        range: Cell range in A1 notation (e.g., 'A1:D10')
-        first_band_color: RGB dict (0-1 floats) for odd bands. Example: {"red": 1.0, "green": 1.0, "blue": 1.0}
-        second_band_color: RGB dict (0-1 floats) for even bands.
-        header_color: Optional RGB dict (0-1 floats) for the header row/column.
+        spreadsheet_id: Spreadsheet ID
+        sheet: Sheet name (case-sensitive)
+        range: A1 range (e.g. 'A1:D10')
+        first_band_color: RGB float dict for odd bands, e.g. {"red": 1.0, "green": 1.0, "blue": 1.0}
+        second_band_color: RGB float dict for even bands
+        header_color: Optional RGB float dict for header row/column
         apply_to: 'ROWS' (default) or 'COLUMNS'
-
-    Returns:
-        Dictionary with success status and banded_range_id
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -618,14 +569,11 @@ def remove_banding(spreadsheet_id: str,
                    banded_range_id: int,
                    ctx: Context = None) -> Dict[str, Any]:
     """
-    Remove alternating color banding by its ID (deleteBanding).
+    Remove alternating color banding by ID (deleteBanding).
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        banded_range_id: Integer ID of the banded range to delete
-
-    Returns:
-        Dictionary with success status and banded_range_id
+        spreadsheet_id: Spreadsheet ID
+        banded_range_id: Integer ID of banded range to delete
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 

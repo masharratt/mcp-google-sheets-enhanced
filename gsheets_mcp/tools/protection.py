@@ -19,19 +19,16 @@ def protect_sheet_range(spreadsheet_id: str,
                         editor_emails: List[str] = None,
                         ctx: Context = None) -> Dict[str, Any]:
     """
-    Protect a sheet or specific range from editing.
+    Protect sheet or range from editing.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        sheet_name: Name of the sheet (case-sensitive)
-        range: Optional cell range in A1 notation. If not provided, protects entire sheet
-        protection_description: Description of what is being protected
-        warning_only: bool - if True, show warning instead of blocking edits
-        requesting_users_can_edit: bool - if True, user who requested protection can edit
-        editor_emails: List of email addresses that can edit the protected range
-
-    Returns:
-        Dictionary with success status and protection ID
+        spreadsheet_id: Spreadsheet ID
+        sheet_name: Sheet name (case-sensitive)
+        range: A1 range to protect. If omitted, protects entire sheet.
+        protection_description: Description label
+        warning_only: True shows warning instead of blocking edits (default True)
+        requesting_users_can_edit: True allows requester to edit protected range (default False)
+        editor_emails: Email addresses allowed to edit protected range
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
@@ -106,16 +103,13 @@ def set_edit_permissions(spreadsheet_id: str,
                          roles: List[str] = None,
                          ctx: Context = None) -> Dict[str, Any]:
     """
-    Configure protection permissions for protected ranges.
+    Update editor list on existing protected range. Always keeps requesting user in editors list.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        protection_id: ID of the protection rule to modify
-        users: List of email addresses to grant permissions
-        roles: List of roles for the users (e.g., ['editor'])
-
-    Returns:
-        Dictionary with success status and permission details
+        spreadsheet_id: Spreadsheet ID
+        protection_id: ID of protection rule to modify
+        users: Email addresses to grant edit access
+        roles: Roles for users (e.g. ['editor'])
     """
     lifespan = ctx.request_context.lifespan_context
     sheets_service = lifespan.sheets_service
@@ -196,14 +190,11 @@ def remove_protection(spreadsheet_id: str,
                       protection_id: str,
                       ctx: Context = None) -> Dict[str, Any]:
     """
-    Remove protection rules from a spreadsheet.
+    Remove protection rule from spreadsheet.
 
     Args:
-        spreadsheet_id: ID of the Google Spreadsheet
-        protection_id: ID of the protection rule to remove
-
-    Returns:
-        Dictionary with success status and removal details
+        spreadsheet_id: Spreadsheet ID
+        protection_id: ID of protection rule to remove
     """
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
