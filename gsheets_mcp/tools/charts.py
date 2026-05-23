@@ -2,8 +2,9 @@
 Chart tools: create, update, and move/resize charts.
 """
 
-from typing import Dict, Any, Optional
+from typing import Annotated, Dict, Any, Literal, Optional
 
+from pydantic import Field
 from mcp.server.fastmcp import Context
 
 from gsheets_mcp.core import mcp, _get_sheet_id, _parse_row_col
@@ -13,22 +14,12 @@ from gsheets_mcp.builders import build_chart_spec, build_chart_request
 @mcp.tool()
 def create_chart(spreadsheet_id: str,
                  sheet_name: str,
-                 chart_type: str,
-                 data_range: str,
-                 position: Dict[str, Any],
-                 title: str = None,
+                 chart_type: Literal['COLUMN', 'BAR', 'LINE', 'PIE', 'SCATTER', 'AREA'],
+                 data_range: Annotated[str, Field(description="A1 range for chart data, e.g. 'A1:C10'")],
+                 position: Annotated[Dict[str, Any], Field(description='Anchor position dict: {"sheetId": 0, "rowIndex": 10, "columnIndex": 5}')],
+                 title: Optional[str] = None,
                  ctx: Context = None) -> Dict[str, Any]:
-    """
-    Create chart in Google Sheets.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet_name: Sheet name (case-sensitive)
-        chart_type: 'COLUMN', 'BAR', 'LINE', 'PIE', 'SCATTER', or 'AREA'
-        data_range: A1 range for chart data (e.g. 'A1:C10')
-        position: Anchor position dict: {"sheetId": 0, "rowIndex": 10, "columnIndex": 5}
-        title: Optional chart title
-    """
+    """Create a chart in a sheet; use chart_type to select column/bar/line/pie/scatter/area."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -102,18 +93,9 @@ def create_chart(spreadsheet_id: str,
 def update_chart(spreadsheet_id: str,
                  sheet_name: str,
                  chart_id: int,
-                 properties: Dict[str, Any],
+                 properties: Annotated[Dict[str, Any], Field(description='Chart spec properties to merge, e.g. {"title": "New Title", "backgroundColor": {...}}')],
                  ctx: Context = None) -> Dict[str, Any]:
-    """
-    Update chart properties. Reads existing spec, merges changes, sends complete merged chartSpec
-    (preserves required chart-type body: basicChart, pieChart, etc.).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet_name: Sheet name (case-sensitive)
-        chart_id: ID of chart to update
-        properties: Chart spec properties to update, e.g. {"title": "New Title", "backgroundColor": {...}}
-    """
+    """Update chart properties by merging into the existing spec (preserves chart-type body)."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -168,13 +150,7 @@ def update_chart(spreadsheet_id: str,
 def delete_chart(spreadsheet_id: str,
                  chart_id: int,
                  ctx: Context = None) -> Dict[str, Any]:
-    """
-    Delete chart (embedded object) from spreadsheet.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        chart_id: ID of chart to delete
-    """
+    """Delete a chart (embedded object) from a spreadsheet by chart ID."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -210,18 +186,9 @@ def delete_chart(spreadsheet_id: str,
 def move_resize_chart(spreadsheet_id: str,
                       sheet_name: str,
                       chart_id: int,
-                      position: Dict[str, Any],
+                      position: Annotated[Dict[str, Any], Field(description='New position dict: {"rowIndex": 15, "columnIndex": 8, "offsetXPixels": 10, "offsetYPixels": 10, "widthPixels": 600, "heightPixels": 400} (widthPixels/heightPixels optional)')],
                       ctx: Context = None) -> Dict[str, Any]:
-    """
-    Move and/or resize chart.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet_name: Sheet name (case-sensitive)
-        chart_id: ID of chart to move/resize
-        position: New position dict: {"rowIndex": 15, "columnIndex": 8, "offsetXPixels": 10,
-            "offsetYPixels": 10, "widthPixels": 600, "heightPixels": 400} (widthPixels/heightPixels optional)
-    """
+    """Move and/or resize a chart by supplying a new anchor position and optional pixel dimensions."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:

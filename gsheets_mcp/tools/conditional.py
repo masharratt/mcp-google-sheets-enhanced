@@ -5,7 +5,9 @@ The helpers _normalize_condition_type, _build_condition_values, and
 _build_gradient_rule are used exclusively by this module, so they live here.
 """
 
-from typing import List, Dict, Any
+from typing import Annotated, List, Dict, Any, Optional
+
+from pydantic import Field
 
 from mcp.server.fastmcp import Context
 
@@ -113,33 +115,10 @@ def _build_gradient_rule(gradient_spec: Dict[str, Any]) -> Dict[str, Any]:
 @mcp.tool()
 def apply_conditional_formatting(spreadsheet_id: str,
                                 sheet_name: str,
-                                range: str,
-                                rules: List[Dict[str, Any]],
+                                range: Annotated[str, Field(description="A1 range, e.g. 'A1:C10'")],
+                                rules: Annotated[List[Dict[str, Any]], Field(description="List of rule dicts. BOOLEAN: {condition_type: Google BooleanCondition.type (NUMBER_LESS|NUMBER_GREATER|NUMBER_EQ|NUMBER_BETWEEN|TEXT_CONTAINS|TEXT_EQ|TEXT_STARTS_WITH|TEXT_ENDS_WITH|DATE_BEFORE|DATE_AFTER|CUSTOM_FORMULA|BLANK|NOT_BLANK) or legacy lowercase alias, values: list, format: {text_format,background_color,borders}}. GRADIENT: {gradient: {minpoint,midpoint,maxpoint}} each {color:{red,green,blue},type:MIN|MAX|NUMBER|PERCENT|PERCENTILE,value:str}.")],
                                 ctx: Context = None) -> Dict[str, Any]:
-    """
-    Apply conditional formatting rules to cell range.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet_name: Sheet name (case-sensitive)
-        range: A1 range (e.g. "A1:C10")
-        rules: List of rule dicts. Two kinds:
-
-            BOOLEAN (highlight matching cells):
-            - condition_type: Google BooleanCondition.type enum: NUMBER_LESS, NUMBER_LESS_THAN_EQ,
-                NUMBER_GREATER, NUMBER_GREATER_THAN_EQ, NUMBER_EQ, NUMBER_BETWEEN,
-                TEXT_CONTAINS, TEXT_NOT_CONTAINS, TEXT_EQ, TEXT_STARTS_WITH, TEXT_ENDS_WITH,
-                DATE_BEFORE, DATE_AFTER, CUSTOM_FORMULA, NOT_BLANK, BLANK.
-                Legacy lowercase aliases also accepted: "less_than", "greater_than", "equal_to",
-                "text_contains", "text_starts_with", "text_ends_with", "between", "formula_custom".
-            - values: Raw condition values. Single-value conditions take one; NUMBER_BETWEEN takes two;
-                CUSTOM_FORMULA takes formula string (e.g. "=$M1<0"); BLANK/NOT_BLANK take none.
-            - format: Dict with keys: text_format (font styling), background_color, borders.
-
-            GRADIENT (color-scale/heatmap): use 'gradient' or 'color_scale' key instead of condition_type.
-            Shape: {"minpoint": {...}, "midpoint": {...}, "maxpoint": {...}} (midpoint optional).
-            Each point: {color: {red, green, blue}, type: MIN|MAX|NUMBER|PERCENT|PERCENTILE, value: str}.
-    """
+    """Apply boolean or gradient conditional formatting rules to a cell range."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -229,23 +208,10 @@ def apply_conditional_formatting(spreadsheet_id: str,
 @mcp.tool()
 def update_conditional_formatting(spreadsheet_id: str,
                                   sheet_name: str,
-                                  rule_id: int,
-                                  rule: Dict[str, Any],
+                                  rule_id: Annotated[int, Field(description="0-based index of rule to replace")],
+                                  rule: Annotated[Dict[str, Any], Field(description='Complete new rule dict with "ranges" and either "booleanRule" or "gradientRule". Example: {"ranges": [...], "booleanRule": {"condition": {"type": "NUMBER_GREATER", "values": [{"userEnteredValue": "100"}]}, "format": {"backgroundColor": {"red": 1, ...}}}}')],
                                   ctx: Context = None) -> Dict[str, Any]:
-    """
-    Update existing conditional formatting rule by index.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet_name: Sheet name (case-sensitive)
-        rule_id: Index of rule to replace
-        rule: Complete new rule dict with 'ranges' and either 'booleanRule' or 'gradientRule'.
-            Example: {"ranges": [{"sheetId": 0, "startRowIndex": 1, "endRowIndex": 10,
-            "startColumnIndex": 1, "endColumnIndex": 5}],
-            "booleanRule": {"condition": {"type": "NUMBER_GREATER",
-            "values": [{"userEnteredValue": "100"}]},
-            "format": {"backgroundColor": {"red": 1, "green": 0, "blue": 0}}}}
-    """
+    """Replace an existing conditional formatting rule by its 0-based index."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -293,16 +259,9 @@ def update_conditional_formatting(spreadsheet_id: str,
 @mcp.tool()
 def clear_conditional_formatting(spreadsheet_id: str,
                                  sheet_name: str,
-                                 rule_id: int = None,
+                                 rule_id: Annotated[Optional[int], Field(description="0-based index of rule to remove. Omit to remove all rules from the sheet.")] = None,
                                  ctx: Context = None) -> Dict[str, Any]:
-    """
-    Remove conditional formatting rule(s) from sheet.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet_name: Sheet name (case-sensitive)
-        rule_id: Index of rule to remove. If omitted, removes all rules from the sheet.
-    """
+    """Remove one or all conditional formatting rules from a sheet."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:

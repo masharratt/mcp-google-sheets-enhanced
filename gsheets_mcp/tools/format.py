@@ -2,8 +2,9 @@
 Format tools: apply cell, text, number formatting, borders, merge cells, move ranges, banding.
 """
 
-from typing import Dict, Any, Optional
+from typing import Annotated, Dict, Any, Literal, Optional
 
+from pydantic import Field
 from mcp.server.fastmcp import Context
 
 from gsheets_mcp.core import mcp, _get_sheet_id, _parse_row_col, _get_format_fields, _build_cell_format, _map_text_format_keys
@@ -13,25 +14,10 @@ from gsheets_mcp.builders import build_repeat_cell_request, build_merge_request,
 @mcp.tool()
 def apply_cell_formatting(spreadsheet_id: str,
                         sheet_name: str,
-                        range: str,
-                        formatting: Dict[str, Any],
+                        range: Annotated[str, Field(description="A1 range, e.g. 'A1:C10'")],
+                        formatting: Annotated[Dict[str, Any], Field(description="Dict with any of: text_format {bold,italic,underline,strikethrough,font_family,font_size,foreground_color,background_color}, alignment {horizontal: LEFT|CENTER|RIGHT, vertical: TOP|MIDDLE|BOTTOM, wrap_strategy: OVERFLOW_CELL|CLIP|WRAP}, background_color {red,green,blue,alpha}, borders {top/bottom/left/right: {style,color}}, number_format {type,pattern}")],
                         ctx: Context = None) -> Dict[str, Any]:
-    """
-    Apply cell formatting to range. Prefer apply_text_formatting for font/color only, add_cell_borders for borders only.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet_name: Sheet name (case-sensitive)
-        range: A1 range (e.g. "A1:C10")
-        formatting: Dict with any of:
-            - text_format: {bold, italic, underline, strikethrough, font_family, font_size,
-                foreground_color: {red,green,blue,alpha}, background_color: {red,green,blue,alpha}}
-            - alignment: {horizontal: LEFT|CENTER|RIGHT, vertical: TOP|MIDDLE|BOTTOM,
-                wrap_strategy: OVERFLOW_CELL|CLIP|WRAP}
-            - background_color: {red,green,blue,alpha}
-            - borders: {top/bottom/left/right: {style, color}}
-            - number_format: {type, pattern}
-    """
+    """Apply combined cell formatting to a range; prefer apply_text_formatting or add_cell_borders for single-concern edits."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -114,20 +100,11 @@ def apply_cell_formatting(spreadsheet_id: str,
 @mcp.tool()
 def set_number_format(spreadsheet_id: str,
                       sheet_name: str,
-                      range: str,
-                      number_format: str,
-                      pattern: str = None,
+                      range: Annotated[str, Field(description="A1 range, e.g. 'A1:C10'")],
+                      number_format: Literal['TEXT', 'NUMBER', 'CURRENCY', 'PERCENT', 'DATE', 'TIME', 'DATE_TIME', 'SCIENTIFIC'],
+                      pattern: Annotated[Optional[str], Field(description="Custom format pattern, e.g. '$#,##0.00'. Overrides number_format when provided.")] = None,
                       ctx: Context = None) -> Dict[str, Any]:
-    """
-    Set number format for cells.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet_name: Sheet name (case-sensitive)
-        range: A1 range (e.g. 'A1:C10')
-        number_format: 'TEXT', 'NUMBER', 'CURRENCY', 'PERCENT', 'DATE', 'TIME', 'DATE_TIME', or 'SCIENTIFIC'
-        pattern: Custom format pattern (e.g. '$#,##0.00'). Overrides number_format when provided.
-    """
+    """Set a built-in or custom number format on a cell range."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -199,20 +176,10 @@ def set_number_format(spreadsheet_id: str,
 @mcp.tool()
 def add_cell_borders(spreadsheet_id: str,
                      sheet_name: str,
-                     range: str,
-                     borders: Dict[str, Any],
+                     range: Annotated[str, Field(description="A1 range, e.g. 'A1:C10'")],
+                     borders: Annotated[Dict[str, Any], Field(description='Dict with any of top/bottom/left/right keys, each: {"style": "SOLID", "color": {"red": 0, "green": 0, "blue": 0}}. Styles: NONE, SOLID, SOLID_MEDIUM, SOLID_THICK, DOTTED, DASHED, DOUBLE')],
                      ctx: Context = None) -> Dict[str, Any]:
-    """
-    Add borders to cell range.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet_name: Sheet name (case-sensitive)
-        range: A1 range (e.g. 'A1:C10')
-        borders: Dict with any of top/bottom/left/right keys, each:
-            {"style": "SOLID", "color": {"red": 0, "green": 0, "blue": 0}}
-            Styles: NONE, SOLID, SOLID_MEDIUM, SOLID_THICK, DOTTED, DASHED, DOUBLE
-    """
+    """Add borders to a cell range; use this instead of apply_cell_formatting when only borders are needed."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -276,22 +243,10 @@ def add_cell_borders(spreadsheet_id: str,
 @mcp.tool()
 def apply_text_formatting(spreadsheet_id: str,
                           sheet_name: str,
-                          range: str,
-                          text_formatting: Dict[str, Any],
+                          range: Annotated[str, Field(description="A1 range, e.g. 'A1:C10'")],
+                          text_formatting: Annotated[Dict[str, Any], Field(description="Dict with any of: font_family (str), font_size (int), bold (bool), italic (bool), underline (bool), strikethrough (bool), foreground_color ({red,green,blue}), background_color ({red,green,blue}), horizontal_alignment (LEFT|CENTER|RIGHT), vertical_alignment (TOP|MIDDLE|BOTTOM), wrap_text (bool)")],
                           ctx: Context = None) -> Dict[str, Any]:
-    """
-    Apply text/font formatting to cell range.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet_name: Sheet name (case-sensitive)
-        range: A1 range (e.g. 'A1:C10')
-        text_formatting: Dict with any of: font_family (str), font_size (int), bold (bool),
-            italic (bool), underline (bool), strikethrough (bool),
-            foreground_color ({red,green,blue}), background_color ({red,green,blue}),
-            horizontal_alignment (LEFT|CENTER|RIGHT), vertical_alignment (TOP|MIDDLE|BOTTOM),
-            wrap_text (bool)
-    """
+    """Apply font and text formatting to a cell range; use instead of apply_cell_formatting when only text style is needed."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -376,18 +331,10 @@ def apply_text_formatting(spreadsheet_id: str,
 @mcp.tool()
 def merge_cells(spreadsheet_id: str,
                 sheet_name: str,
-                range: str,
-                merge_type: str = "MERGE_ALL",
+                range: Annotated[str, Field(description="A1 range, e.g. 'A1:C10'")],
+                merge_type: Literal['MERGE_ALL', 'MERGE_COLUMNS', 'MERGE_ROWS', 'UNMERGE'] = "MERGE_ALL",
                 ctx: Context = None) -> Dict[str, Any]:
-    """
-    Merge or unmerge cells.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet_name: Sheet name (case-sensitive)
-        range: A1 range (e.g. 'A1:C10')
-        merge_type: 'MERGE_ALL', 'MERGE_COLUMNS', 'MERGE_ROWS', or 'UNMERGE'
-    """
+    """Merge or unmerge a cell range; UNMERGE removes existing merges."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -438,18 +385,10 @@ def merge_cells(spreadsheet_id: str,
 @mcp.tool()
 def move_range(spreadsheet_id: str,
                sheet_name: str,
-               source_range: str,
-               destination: Dict[str, Any],
+               source_range: Annotated[str, Field(description="A1 source range, e.g. 'A1:C10'")],
+               destination: Annotated[Dict[str, Any], Field(description='Destination dict: {"sheetId": 0, "rowIndex": 5, "columnIndex": 2}')],
                ctx: Context = None) -> Dict[str, Any]:
-    """
-    Move data range to new position (moveDimension on ROWS).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet_name: Sheet name (case-sensitive)
-        source_range: A1 source range (e.g. 'A1:C10')
-        destination: Destination dict: {"sheetId": 0, "rowIndex": 5, "columnIndex": 2}
-    """
+    """Move a data range to a new row position via moveDimension."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -494,24 +433,13 @@ def move_range(spreadsheet_id: str,
 @mcp.tool()
 def add_banding(spreadsheet_id: str,
                 sheet: str,
-                range: str,
-                first_band_color: Dict[str, float],
-                second_band_color: Dict[str, float],
+                range: Annotated[str, Field(description="A1 range, e.g. 'A1:D10'")],
+                first_band_color: Annotated[Dict[str, float], Field(description='RGB float dict for odd bands, e.g. {"red": 1.0, "green": 1.0, "blue": 1.0}')],
+                second_band_color: Annotated[Dict[str, float], Field(description="RGB float dict for even bands")],
                 header_color: Optional[Dict[str, float]] = None,
-                apply_to: str = 'ROWS',
+                apply_to: Literal['ROWS', 'COLUMNS'] = 'ROWS',
                 ctx: Context = None) -> Dict[str, Any]:
-    """
-    Apply alternating color bands over range (addBanding).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet: Sheet name (case-sensitive)
-        range: A1 range (e.g. 'A1:D10')
-        first_band_color: RGB float dict for odd bands, e.g. {"red": 1.0, "green": 1.0, "blue": 1.0}
-        second_band_color: RGB float dict for even bands
-        header_color: Optional RGB float dict for header row/column
-        apply_to: 'ROWS' (default) or 'COLUMNS'
-    """
+    """Apply alternating color bands (addBanding) over a range; choose ROWS or COLUMNS banding direction."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -568,13 +496,7 @@ def add_banding(spreadsheet_id: str,
 def remove_banding(spreadsheet_id: str,
                    banded_range_id: int,
                    ctx: Context = None) -> Dict[str, Any]:
-    """
-    Remove alternating color banding by ID (deleteBanding).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        banded_range_id: Integer ID of banded range to delete
-    """
+    """Remove alternating color banding by its numeric ID (deleteBanding)."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:

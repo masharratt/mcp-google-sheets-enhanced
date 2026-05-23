@@ -5,7 +5,9 @@ Pivot tables are written by placing a PivotTable spec on an anchor cell
 via the spreadsheets.batchUpdate updateCells request.
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Annotated, Dict, Any, List, Optional
+
+from pydantic import Field
 
 from mcp.server.fastmcp import Context
 
@@ -15,28 +17,15 @@ from gsheets_mcp.core import mcp, _get_sheet_id, _parse_row_col
 @mcp.tool()
 def create_pivot_table(spreadsheet_id: str,
                        source_sheet: str,
-                       source_range: str,
+                       source_range: Annotated[str, Field(description="A1 range of source data, e.g. 'A1:C100'")],
                        anchor_sheet: str,
-                       anchor_row: int,
-                       anchor_col: int,
-                       rows: List[Dict[str, Any]],
-                       values: List[Dict[str, Any]],
-                       columns: Optional[List[Dict[str, Any]]] = None,
+                       anchor_row: Annotated[int, Field(description="0-based row index of anchor cell")],
+                       anchor_col: Annotated[int, Field(description="0-based column index of anchor cell")],
+                       rows: Annotated[List[Dict[str, Any]], Field(description="Row groupings, each: {source_column_offset: int, show_totals: bool, sort_order: 'ASCENDING'|'DESCENDING'}")],
+                       values: Annotated[List[Dict[str, Any]], Field(description="Value fields, each: {source_column_offset: int, summarize_function: str (SUM|AVERAGE|COUNT|MAX|MIN|etc.)}")],
+                       columns: Annotated[Optional[List[Dict[str, Any]]], Field(description="Optional column groupings, same shape as rows")] = None,
                        ctx: Context = None) -> Dict[str, Any]:
-    """
-    Create pivot table via updateCells on anchor cell.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        source_sheet: Sheet with source data
-        source_range: A1 range of source data (e.g. 'A1:C100')
-        anchor_sheet: Sheet where pivot table is placed
-        anchor_row: 0-based row index of anchor cell
-        anchor_col: 0-based column index of anchor cell
-        rows: Row groupings, each: {source_column_offset: int, show_totals: bool, sort_order: str}
-        values: Value fields, each: {source_column_offset: int, summarize_function: str}
-        columns: Optional column groupings (same shape as rows)
-    """
+    """Create a pivot table by placing a PivotTable spec on an anchor cell via updateCells."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -133,18 +122,10 @@ def create_pivot_table(spreadsheet_id: str,
 @mcp.tool()
 def delete_pivot_table(spreadsheet_id: str,
                        anchor_sheet: str,
-                       anchor_row: int,
-                       anchor_col: int,
+                       anchor_row: Annotated[int, Field(description="0-based row index of anchor cell")],
+                       anchor_col: Annotated[int, Field(description="0-based column index of anchor cell")],
                        ctx: Context = None) -> Dict[str, Any]:
-    """
-    Delete pivot table by writing empty cell at anchor position.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        anchor_sheet: Sheet containing pivot table
-        anchor_row: 0-based row index of anchor cell
-        anchor_col: 0-based column index of anchor cell
-    """
+    """Delete a pivot table by clearing the anchor cell (writes an empty cell at the anchor position)."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:

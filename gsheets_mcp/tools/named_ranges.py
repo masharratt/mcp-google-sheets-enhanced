@@ -2,7 +2,9 @@
 Named range tools: create, list, and update named ranges.
 """
 
-from typing import Dict, Any
+from typing import Annotated, Dict, Any
+
+from pydantic import Field
 
 from mcp.server.fastmcp import Context
 
@@ -49,16 +51,9 @@ def _resolve_grid_range(sheets_service, spreadsheet_id: str, range_str: str) -> 
 @mcp.tool()
 def create_named_range(spreadsheet_id: str,
                        name: str,
-                       range: str,
+                       range: Annotated[str, Field(description="A1 range with optional sheet prefix, e.g. 'Sheet1!A1:C10'")],
                        ctx: Context = None) -> Dict[str, Any]:
-    """
-    Create named range.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        name: Name for range
-        range: A1 range with optional sheet prefix (e.g. 'Sheet1!A1:C10')
-    """
+    """Create a named range that can be referenced by name in formulas and other tools."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -102,12 +97,7 @@ def create_named_range(spreadsheet_id: str,
 @mcp.tool()
 def list_named_ranges(spreadsheet_id: str,
                       ctx: Context = None) -> Dict[str, Any]:
-    """
-    List all named ranges in spreadsheet.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-    """
+    """List all named ranges defined in a spreadsheet."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -141,16 +131,9 @@ def list_named_ranges(spreadsheet_id: str,
 @mcp.tool()
 def update_named_range(spreadsheet_id: str,
                        name: str,
-                       new_range: str,
+                       new_range: Annotated[str, Field(description="New A1 range with optional sheet prefix, e.g. 'Sheet1!A1:C10'")],
                        ctx: Context = None) -> Dict[str, Any]:
-    """
-    Update range of existing named range.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        name: Current name of named range
-        new_range: New A1 range (with optional sheet prefix)
-    """
+    """Update the cell range of an existing named range by name."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:

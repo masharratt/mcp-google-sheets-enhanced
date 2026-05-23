@@ -4,7 +4,9 @@ Developer metadata tools: create and search developer metadata in Google Sheets.
 Developer metadata are key/value labels attached to a spreadsheet, sheet, or range.
 """
 
-from typing import Dict, Any, Optional
+from typing import Annotated, Dict, Any, Literal, Optional
+
+from pydantic import Field
 
 from mcp.server.fastmcp import Context
 
@@ -15,21 +17,11 @@ from gsheets_mcp.core import mcp, _get_sheet_id
 def create_developer_metadata(spreadsheet_id: str,
                                metadata_key: str,
                                metadata_value: str,
-                               visibility: str = "DOCUMENT",
-                               location_type: str = "SPREADSHEET",
-                               sheet: Optional[str] = None,
+                               visibility: Literal['DOCUMENT', 'PROJECT'] = "DOCUMENT",
+                               location_type: Literal['SPREADSHEET', 'SHEET'] = "SPREADSHEET",
+                               sheet: Annotated[Optional[str], Field(description="Sheet name (required when location_type is 'SHEET')")] = None,
                                ctx: Context = None) -> Dict[str, Any]:
-    """
-    Attach developer metadata (key/value label) to spreadsheet or sheet.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        metadata_key: Metadata key
-        metadata_value: Metadata value
-        visibility: 'DOCUMENT' (default) or 'PROJECT'
-        location_type: 'SPREADSHEET' (default) or 'SHEET'
-        sheet: Sheet name (required when location_type is 'SHEET')
-    """
+    """Attach a developer metadata key/value label to a spreadsheet or sheet for programmatic tagging."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -84,17 +76,10 @@ def create_developer_metadata(spreadsheet_id: str,
 
 @mcp.tool()
 def search_developer_metadata(spreadsheet_id: str,
-                               metadata_key: Optional[str] = None,
-                               metadata_id: Optional[int] = None,
+                               metadata_key: Annotated[Optional[str], Field(description="Filter by metadata key (optional)")] = None,
+                               metadata_id: Annotated[Optional[int], Field(description="Filter by metadata ID (optional)")] = None,
                                ctx: Context = None) -> Dict[str, Any]:
-    """
-    Search developer metadata via dataFilters.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        metadata_key: Filter by key (optional)
-        metadata_id: Filter by metadata ID (optional)
-    """
+    """Search developer metadata on a spreadsheet by key or ID via dataFilters."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:

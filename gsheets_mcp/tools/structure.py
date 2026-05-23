@@ -2,8 +2,9 @@
 Structure tools: add/delete rows, columns, and auto-resize dimensions.
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Annotated, Dict, Any, List, Literal, Optional
 
+from pydantic import Field
 from mcp.server.fastmcp import Context
 
 from gsheets_mcp.core import mcp, _get_sheet_id, _col_to_num, _a1_to_grid_range
@@ -14,17 +15,9 @@ from gsheets_mcp.builders import build_freeze_request
 def add_rows(spreadsheet_id: str,
              sheet: str,
              count: int,
-             start_row: Optional[int] = None,
+             start_row: Annotated[Optional[int], Field(description="0-based row index. Omit to add at beginning.")] = None,
              ctx: Context = None) -> Dict[str, Any]:
-    """
-    Add rows to sheet (insertDimension).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet: Sheet name
-        count: Number of rows to add
-        start_row: 0-based row index. Omit to add at beginning.
-    """
+    """Add rows to a sheet via insertDimension."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     # Get sheet ID
@@ -69,17 +62,9 @@ def add_rows(spreadsheet_id: str,
 def add_columns(spreadsheet_id: str,
                 sheet: str,
                 count: int,
-                start_column: Optional[int] = None,
+                start_column: Annotated[Optional[int], Field(description="0-based column index. Omit to add at beginning.")] = None,
                 ctx: Context = None) -> Dict[str, Any]:
-    """
-    Add columns to sheet (insertDimension).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet: Sheet name
-        count: Number of columns to add
-        start_column: 0-based column index. Omit to add at beginning.
-    """
+    """Add columns to a sheet via insertDimension."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     # Get sheet ID
@@ -123,20 +108,11 @@ def add_columns(spreadsheet_id: str,
 @mcp.tool()
 def delete_rows_columns(spreadsheet_id: str,
                         sheet_name: str,
-                        dimension: str,
-                        start_index: int,
-                        end_index: int,
+                        dimension: Literal['ROWS', 'COLUMNS'],
+                        start_index: Annotated[int, Field(description="0-based start index (inclusive)")],
+                        end_index: Annotated[int, Field(description="0-based end index (exclusive)")],
                         ctx: Context = None) -> Dict[str, Any]:
-    """
-    Delete rows or columns (deleteDimension).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet_name: Sheet name (case-sensitive)
-        dimension: 'ROWS' or 'COLUMNS'
-        start_index: 0-based start index (inclusive)
-        end_index: 0-based end index (exclusive)
-    """
+    """Delete rows or columns by dimension and 0-based index range (deleteDimension)."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -180,17 +156,9 @@ def delete_rows_columns(spreadsheet_id: str,
 @mcp.tool()
 def auto_resize_dimensions(spreadsheet_id: str,
                            sheet_name: str,
-                           dimensions: Dict[str, Any],
+                           dimensions: Annotated[Dict[str, Any], Field(description='Dict with "columns" and/or "rows" keys, each: {startIndex, endIndex}. Example: {"columns": {"startIndex": 0, "endIndex": 10}}')],
                            ctx: Context = None) -> Dict[str, Any]:
-    """
-    Auto-fit row and/or column sizes (autoResizeDimensions).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet_name: Sheet name (case-sensitive)
-        dimensions: Dict with 'columns' and/or 'rows' keys, each: {startIndex, endIndex}.
-            Example: {"columns": {"startIndex": 0, "endIndex": 10}, "rows": {"startIndex": 0, "endIndex": 20}}
-    """
+    """Auto-fit row and/or column sizes to content (autoResizeDimensions)."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -253,20 +221,11 @@ def auto_resize_dimensions(spreadsheet_id: str,
 @mcp.tool()
 def insert_rows(spreadsheet_id: str,
                 sheet: str,
-                start_index: int,
+                start_index: Annotated[int, Field(description="0-based row index for insertion")],
                 count: int,
                 inherit_from_before: bool = True,
                 ctx: Context = None) -> Dict[str, Any]:
-    """
-    Insert N rows at 0-based index (insertDimension).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet: Sheet name
-        start_index: 0-based row index for insertion
-        count: Number of rows to insert
-        inherit_from_before: Inherit formatting from row above (default True)
-    """
+    """Insert N rows at a 0-based index, optionally inheriting formatting from the row above (insertDimension)."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -302,20 +261,11 @@ def insert_rows(spreadsheet_id: str,
 @mcp.tool()
 def insert_columns(spreadsheet_id: str,
                    sheet: str,
-                   start_index: int,
+                   start_index: Annotated[int, Field(description="0-based column index for insertion")],
                    count: int,
                    inherit_from_before: bool = True,
                    ctx: Context = None) -> Dict[str, Any]:
-    """
-    Insert N columns at 0-based index (insertDimension).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet: Sheet name
-        start_index: 0-based column index for insertion
-        count: Number of columns to insert
-        inherit_from_before: Inherit formatting from column before (default True)
-    """
+    """Insert N columns at a 0-based index, optionally inheriting formatting from the column before (insertDimension)."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -351,18 +301,10 @@ def insert_columns(spreadsheet_id: str,
 @mcp.tool()
 def delete_columns(spreadsheet_id: str,
                    sheet: str,
-                   start_index: int,
-                   end_index: int,
+                   start_index: Annotated[int, Field(description="0-based start column index (inclusive)")],
+                   end_index: Annotated[int, Field(description="0-based end column index (exclusive)")],
                    ctx: Context = None) -> Dict[str, Any]:
-    """
-    Delete columns (deleteDimension, column-only wrapper).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet: Sheet name (case-sensitive)
-        start_index: 0-based start column index (inclusive)
-        end_index: 0-based end column index (exclusive)
-    """
+    """Delete columns by 0-based index range (deleteDimension, column-only wrapper)."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -402,18 +344,10 @@ def delete_columns(spreadsheet_id: str,
 @mcp.tool()
 def freeze_dimensions(spreadsheet_id: str,
                       sheet: str,
-                      frozen_rows: Optional[int] = None,
-                      frozen_columns: Optional[int] = None,
+                      frozen_rows: Annotated[Optional[int], Field(description="Number of rows to freeze. Omit to leave unchanged.")] = None,
+                      frozen_columns: Annotated[Optional[int], Field(description="Number of columns to freeze. Omit to leave unchanged.")] = None,
                       ctx: Context = None) -> Dict[str, Any]:
-    """
-    Freeze rows and/or columns (updateSheetProperties). At least one of frozen_rows/frozen_columns required.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet: Sheet name (case-sensitive)
-        frozen_rows: Rows to freeze (omit to leave unchanged)
-        frozen_columns: Columns to freeze (omit to leave unchanged)
-    """
+    """Freeze rows and/or columns (updateSheetProperties); at least one of frozen_rows/frozen_columns required."""
     if frozen_rows is None and frozen_columns is None:
         return {"error": "At least one of frozen_rows or frozen_columns must be specified", "success": False}
 
@@ -449,22 +383,12 @@ def freeze_dimensions(spreadsheet_id: str,
 @mcp.tool()
 def set_dimension_size(spreadsheet_id: str,
                        sheet: str,
-                       dimension: str,
-                       start_index: int,
-                       end_index: int,
-                       pixel_size: int,
+                       dimension: Literal['ROWS', 'COLUMNS'],
+                       start_index: Annotated[int, Field(description="0-based start index (inclusive)")],
+                       end_index: Annotated[int, Field(description="0-based end index (exclusive)")],
+                       pixel_size: Annotated[int, Field(description="Target pixel size in pixels")],
                        ctx: Context = None) -> Dict[str, Any]:
-    """
-    Set row/column size to exact pixel size (updateDimensionProperties).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet: Sheet name (case-sensitive)
-        dimension: 'ROWS' or 'COLUMNS'
-        start_index: 0-based start index (inclusive)
-        end_index: 0-based end index (exclusive)
-        pixel_size: Target pixel size
-    """
+    """Set rows or columns to an exact pixel size (updateDimensionProperties)."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -506,20 +430,11 @@ def set_dimension_size(spreadsheet_id: str,
 @mcp.tool()
 def group_dimensions(spreadsheet_id: str,
                      sheet: str,
-                     dimension: str,
-                     start_index: int,
-                     end_index: int,
+                     dimension: Literal['ROWS', 'COLUMNS'],
+                     start_index: Annotated[int, Field(description="0-based start index (inclusive)")],
+                     end_index: Annotated[int, Field(description="0-based end index (exclusive)")],
                      ctx: Context = None) -> Dict[str, Any]:
-    """
-    Group rows or columns (addDimensionGroup, creates collapsible group).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet: Sheet name (case-sensitive)
-        dimension: 'ROWS' or 'COLUMNS'
-        start_index: 0-based start index (inclusive)
-        end_index: 0-based end index (exclusive)
-    """
+    """Group rows or columns into a collapsible group (addDimensionGroup)."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -557,20 +472,11 @@ def group_dimensions(spreadsheet_id: str,
 @mcp.tool()
 def ungroup_dimensions(spreadsheet_id: str,
                        sheet: str,
-                       dimension: str,
-                       start_index: int,
-                       end_index: int,
+                       dimension: Literal['ROWS', 'COLUMNS'],
+                       start_index: Annotated[int, Field(description="0-based start index (inclusive)")],
+                       end_index: Annotated[int, Field(description="0-based end index (exclusive)")],
                        ctx: Context = None) -> Dict[str, Any]:
-    """
-    Ungroup rows or columns (deleteDimensionGroup).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet: Sheet name (case-sensitive)
-        dimension: 'ROWS' or 'COLUMNS'
-        start_index: 0-based start index (inclusive)
-        end_index: 0-based end index (exclusive)
-    """
+    """Remove a dimension group from rows or columns (deleteDimensionGroup)."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -609,18 +515,10 @@ def ungroup_dimensions(spreadsheet_id: str,
 @mcp.tool()
 def sort_range(spreadsheet_id: str,
                sheet: str,
-               range: str,
-               sort_specs: List[Dict[str, Any]],
+               range: Annotated[str, Field(description="A1 range to sort, e.g. 'A1:D10'")],
+               sort_specs: Annotated[List[Dict[str, Any]], Field(description="List of {dimension_index: int (0-based col), sort_order: 'ASCENDING'|'DESCENDING'}")],
                ctx: Context = None) -> Dict[str, Any]:
-    """
-    Sort range by one or more columns (sortRange).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet: Sheet name (case-sensitive)
-        range: A1 range to sort (e.g. 'A1:D10')
-        sort_specs: List of {dimension_index: int (0-based col), sort_order: 'ASCENDING'|'DESCENDING'}
-    """
+    """Sort a range by one or more columns (sortRange)."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:

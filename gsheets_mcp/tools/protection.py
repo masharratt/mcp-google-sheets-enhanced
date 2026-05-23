@@ -2,7 +2,9 @@
 Protection tools: protect ranges/sheets, set permissions, remove protection.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import Annotated, List, Dict, Any, Optional
+
+from pydantic import Field
 
 from mcp.server.fastmcp import Context
 
@@ -12,24 +14,13 @@ from gsheets_mcp.core import mcp, _get_sheet_id, _parse_row_col
 @mcp.tool()
 def protect_sheet_range(spreadsheet_id: str,
                         sheet_name: str,
-                        range: str = None,
-                        protection_description: str = None,
+                        range: Annotated[Optional[str], Field(description="A1 range to protect, e.g. 'A1:C10'. Omit to protect entire sheet.")] = None,
+                        protection_description: Optional[str] = None,
                         warning_only: bool = True,
                         requesting_users_can_edit: bool = False,
-                        editor_emails: List[str] = None,
+                        editor_emails: Optional[List[str]] = None,
                         ctx: Context = None) -> Dict[str, Any]:
-    """
-    Protect sheet or range from editing.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet_name: Sheet name (case-sensitive)
-        range: A1 range to protect. If omitted, protects entire sheet.
-        protection_description: Description label
-        warning_only: True shows warning instead of blocking edits (default True)
-        requesting_users_can_edit: True allows requester to edit protected range (default False)
-        editor_emails: Email addresses allowed to edit protected range
-    """
+    """Protect a sheet or range from editing; warning_only=True shows a warning instead of blocking."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -99,18 +90,10 @@ def protect_sheet_range(spreadsheet_id: str,
 @mcp.tool()
 def set_edit_permissions(spreadsheet_id: str,
                          protection_id: str,
-                         users: List[str] = None,
-                         roles: List[str] = None,
+                         users: Optional[List[str]] = None,
+                         roles: Optional[List[str]] = None,
                          ctx: Context = None) -> Dict[str, Any]:
-    """
-    Update editor list on existing protected range. Always keeps requesting user in editors list.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        protection_id: ID of protection rule to modify
-        users: Email addresses to grant edit access
-        roles: Roles for users (e.g. ['editor'])
-    """
+    """Update the editor list on an existing protected range; always keeps the requesting user in the list."""
     lifespan = ctx.request_context.lifespan_context
     sheets_service = lifespan.sheets_service
     requesting_user_email = getattr(lifespan, 'requesting_user_email', None)
@@ -189,13 +172,7 @@ def set_edit_permissions(spreadsheet_id: str,
 def remove_protection(spreadsheet_id: str,
                       protection_id: str,
                       ctx: Context = None) -> Dict[str, Any]:
-    """
-    Remove protection rule from spreadsheet.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        protection_id: ID of protection rule to remove
-    """
+    """Remove a protection rule from a spreadsheet by its ID."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:

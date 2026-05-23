@@ -2,7 +2,9 @@
 Write tools: update cell values in Google Spreadsheets.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import Annotated, List, Dict, Any, Literal, Optional
+
+from pydantic import Field
 
 from mcp.server.fastmcp import Context
 
@@ -12,18 +14,10 @@ from gsheets_mcp.core import mcp, _get_sheet_id
 @mcp.tool()
 def update_cells(spreadsheet_id: str,
                 sheet: str,
-                range: str,
-                data: List[List[Any]],
+                range: Annotated[str, Field(description="A1 range, e.g. 'A1:C10'")],
+                data: Annotated[List[List[Any]], Field(description="2D array of values to write")],
                 ctx: Context = None) -> Dict[str, Any]:
-    """
-    Write values to cell range (USER_ENTERED mode, parses formulas/dates).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet: Sheet name
-        range: A1 range (e.g. 'A1:C10')
-        data: 2D array of values
-    """
+    """Write values to a cell range in USER_ENTERED mode (parses formulas and dates)."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     # Construct the range
@@ -48,17 +42,9 @@ def update_cells(spreadsheet_id: str,
 @mcp.tool()
 def batch_update_cells(spreadsheet_id: str,
                        sheet: str,
-                       ranges: Dict[str, List[List[Any]]],
+                       ranges: Annotated[Dict[str, List[List[Any]]], Field(description='Dict mapping A1 range strings to 2D value arrays. Example: {"A1:B2": [[1, 2], [3, 4]], "D1:E2": [["a", "b"]]}')],
                        ctx: Context = None) -> Dict[str, Any]:
-    """
-    Write values to multiple ranges in one batchUpdate call (USER_ENTERED mode).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet: Sheet name
-        ranges: Dict mapping A1 range strings to 2D value arrays.
-            Example: {"A1:B2": [[1, 2], [3, 4]], "D1:E2": [["a", "b"]]}
-    """
+    """Write values to multiple ranges in one batchUpdate call (USER_ENTERED mode)."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     # Prepare the batch update request
@@ -87,22 +73,12 @@ def batch_update_cells(spreadsheet_id: str,
 @mcp.tool()
 def append_data(spreadsheet_id: str,
                 sheet: str,
-                data: List[List[Any]],
-                range: Optional[str] = None,
-                value_input_option: str = 'USER_ENTERED',
-                insert_data_option: str = 'INSERT_ROWS',
+                data: Annotated[List[List[Any]], Field(description="2D array of values to append")],
+                range: Annotated[Optional[str], Field(description="A1 range anchor, e.g. 'A1'. Omit to target whole sheet.")] = None,
+                value_input_option: Literal['USER_ENTERED', 'RAW'] = 'USER_ENTERED',
+                insert_data_option: Literal['INSERT_ROWS', 'OVERWRITE'] = 'INSERT_ROWS',
                 ctx: Context = None) -> Dict[str, Any]:
-    """
-    Append rows after last row with data in range.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet: Sheet name
-        data: 2D array of values to append
-        range: A1 range anchor (e.g. 'A1'). Omit to target whole sheet.
-        value_input_option: 'USER_ENTERED' (default, parses formulas/dates) or 'RAW' (literal values)
-        insert_data_option: 'INSERT_ROWS' (default, inserts rows) or 'OVERWRITE' (overwrites at table end)
-    """
+    """Append rows after the last row with data; INSERT_ROWS inserts rows, OVERWRITE overwrites at the table end."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     # Construct the range: whole sheet if no range given, otherwise sheet!range
@@ -126,15 +102,9 @@ def append_data(spreadsheet_id: str,
 
 @mcp.tool()
 def batch_clear_values(spreadsheet_id: str,
-                       ranges: List[str],
+                       ranges: Annotated[List[str], Field(description="A1 ranges to clear, e.g. ['Sheet1!A1:B2', 'Sheet2!C3:D4']")],
                        ctx: Context = None) -> List[str]:
-    """
-    Clear multiple ranges in one batchClear call.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        ranges: A1 ranges to clear (e.g. ['Sheet1!A1:B2', 'Sheet2!C3:D4'])
-    """
+    """Clear cell values from multiple ranges in one batchClear call."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     body = {'ranges': ranges}
@@ -151,25 +121,13 @@ def batch_clear_values(spreadsheet_id: str,
 def find_replace(spreadsheet_id: str,
                  find: str,
                  replacement: str,
-                 sheet: Optional[str] = None,
+                 sheet: Annotated[Optional[str], Field(description="Sheet name to restrict search. Omit to search all sheets.")] = None,
                  match_case: bool = False,
                  match_entire_cell: bool = False,
                  search_by_regex: bool = False,
                  include_formulas: bool = False,
                  ctx: Context = None) -> Dict[str, Any]:
-    """
-    Find and replace text in spreadsheet or single sheet.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        find: Value to search for
-        replacement: Replacement value
-        sheet: Sheet name to restrict search. Omit to search all sheets.
-        match_case: Case-sensitive search (default False)
-        match_entire_cell: Match only cells whose entire value equals find (default False)
-        search_by_regex: Treat find as regex (default False)
-        include_formulas: Search formula text instead of computed values (default False)
-    """
+    """Find and replace text across a spreadsheet or a single sheet."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     find_replace_request: Dict[str, Any] = {

@@ -2,7 +2,9 @@
 Data validation tools: set, list, and clear data validation rules.
 """
 
-from typing import Dict, Any, Optional
+from typing import Annotated, Dict, Any, Optional
+
+from pydantic import Field
 
 from mcp.server.fastmcp import Context
 
@@ -12,24 +14,10 @@ from gsheets_mcp.core import mcp, _get_sheet_id, _parse_row_col
 @mcp.tool()
 def set_data_validation(spreadsheet_id: str,
                         sheet_name: str,
-                        range: str,
-                        validation_rule: Dict[str, Any],
+                        range: Annotated[str, Field(description="A1 range, e.g. 'A1:C10'")],
+                        validation_rule: Annotated[Dict[str, Any], Field(description="Dict with: condition_type ('NUMBER_BETWEEN'|'NUMBER_NOT_BETWEEN'|'TEXT_CONTAINS'|'TEXT_NOT_CONTAINS'|'TEXT_EQ'|'TEXT_IS_VALID_URL'|'ONE_OF_RANGE'|'ONE_OF_LIST'|'NONE'), values (NUMBER_BETWEEN takes 2; ONE_OF_LIST takes N; ONE_OF_RANGE takes range string), strict (bool), input_message (str), show_dropdown (bool)")],
                         ctx: Context = None) -> Dict[str, Any]:
-    """
-    Set data validation rule on cell range.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet_name: Sheet name (case-sensitive)
-        range: A1 range (e.g. "A1:C10")
-        validation_rule: Dict with:
-            - condition_type: 'NUMBER_BETWEEN', 'NUMBER_NOT_BETWEEN', 'TEXT_CONTAINS',
-                'TEXT_NOT_CONTAINS', 'TEXT_EQ', 'TEXT_IS_VALID_URL', 'ONE_OF_RANGE', 'ONE_OF_LIST', 'NONE'
-            - values: Condition values (NUMBER_BETWEEN takes 2; ONE_OF_LIST takes N; ONE_OF_RANGE takes range string)
-            - strict: bool, reject invalid input (default False)
-            - input_message: str, shown when cell selected
-            - show_dropdown: bool, show dropdown for list validation (default True)
-    """
+    """Set a data validation rule on a cell range to constrain allowed input."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -105,15 +93,9 @@ def set_data_validation(spreadsheet_id: str,
 
 @mcp.tool()
 def list_validation_rules(spreadsheet_id: str,
-                          sheet_name: str = None,
+                          sheet_name: Annotated[Optional[str], Field(description="Sheet name (case-sensitive). Omit to return rules from all sheets.")] = None,
                           ctx: Context = None) -> Dict[str, Any]:
-    """
-    List data validation rules in sheet or spreadsheet.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet_name: Sheet name (case-sensitive). Omit to return rules from all sheets.
-    """
+    """List data validation rules in a sheet or across all sheets in a spreadsheet."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -163,16 +145,9 @@ def list_validation_rules(spreadsheet_id: str,
 @mcp.tool()
 def clear_data_validation(spreadsheet_id: str,
                           sheet_name: str,
-                          range: str,
+                          range: Annotated[str, Field(description="A1 range, e.g. 'A1:C10'")],
                           ctx: Context = None) -> Dict[str, Any]:
-    """
-    Clear data validation from cell range (setDataValidation with no rule).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet_name: Sheet name (case-sensitive)
-        range: A1 range (e.g. 'A1:C10')
-    """
+    """Clear data validation rules from a cell range (setDataValidation with no rule)."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:

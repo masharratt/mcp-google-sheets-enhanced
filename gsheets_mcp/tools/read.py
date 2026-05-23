@@ -2,7 +2,9 @@
 Read tools: fetch data and metadata from Google Spreadsheets.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import Annotated, List, Dict, Any, Literal, Optional
+
+from pydantic import Field
 
 from mcp.server.fastmcp import Context
 
@@ -12,18 +14,10 @@ from gsheets_mcp.core import mcp
 @mcp.tool()
 def get_sheet_data(spreadsheet_id: str,
                    sheet: str,
-                   range: Optional[str] = None,
-                   include_grid_data: bool = False,
+                   range: Annotated[Optional[str], Field(description="A1 range, e.g. 'A1:C10'. Omit for all data.")] = None,
+                   include_grid_data: Annotated[bool, Field(description="True includes cell formatting/metadata (much larger response). Default False returns values only.")] = False,
                    ctx: Context = None) -> Dict[str, Any]:
-    """
-    Get data from sheet.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID (from URL)
-        sheet: Sheet name
-        range: A1 range (e.g. 'A1:C10'). Omit for all data.
-        include_grid_data: True includes cell formatting/metadata (much larger response). Default False (values only).
-    """
+    """Get cell values (or full grid data) from a sheet; use batch_get_values for multiple ranges in one call."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     # Construct the range - keep original API behavior
@@ -61,16 +55,9 @@ def get_sheet_data(spreadsheet_id: str,
 @mcp.tool()
 def get_sheet_formulas(spreadsheet_id: str,
                        sheet: str,
-                       range: Optional[str] = None,
+                       range: Annotated[Optional[str], Field(description="A1 range, e.g. 'A1:C10'. Omit for all formulas in sheet.")] = None,
                        ctx: Context = None) -> List[List[Any]]:
-    """
-    Get formulas (FORMULA render option) from sheet.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID (from URL)
-        sheet: Sheet name
-        range: A1 range (e.g. 'A1:C10'). Omit for all formulas in sheet.
-    """
+    """Get raw formula text (FORMULA render option) from a sheet instead of computed values."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     # Construct the range
@@ -92,16 +79,9 @@ def get_sheet_formulas(spreadsheet_id: str,
 
 
 @mcp.tool()
-def get_multiple_sheet_data(queries: List[Dict[str, str]],
+def get_multiple_sheet_data(queries: Annotated[List[Dict[str, str]], Field(description='List of dicts with keys: spreadsheet_id, sheet, range. Example: [{"spreadsheet_id": "abc", "sheet": "Sheet1", "range": "A1:B5"}]')],
                             ctx: Context = None) -> List[Dict[str, Any]]:
-    """
-    Get data from multiple ranges across multiple spreadsheets (one request per range).
-    For multiple ranges in one spreadsheet, prefer batch_get_values.
-
-    Args:
-        queries: List of dicts with keys: spreadsheet_id, sheet, range.
-            Example: [{"spreadsheet_id": "abc", "sheet": "Sheet1", "range": "A1:B5"}]
-    """
+    """Get data from multiple ranges across multiple spreadsheets; use batch_get_values for multiple ranges in one spreadsheet."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
     results = []
 
@@ -136,15 +116,9 @@ def get_multiple_sheet_data(queries: List[Dict[str, str]],
 
 @mcp.tool()
 def get_multiple_spreadsheet_summary(spreadsheet_ids: List[str],
-                                   rows_to_fetch: int = 5,
+                                   rows_to_fetch: Annotated[int, Field(description="Rows to fetch per sheet including header (default 5)")] = 5,
                                    ctx: Context = None) -> List[Dict[str, Any]]:
-    """
-    Get summary of multiple spreadsheets: title, sheet names, headers, first N rows per sheet.
-
-    Args:
-        spreadsheet_ids: List of spreadsheet IDs to summarize
-        rows_to_fetch: Rows to fetch per sheet including header (default 5)
-    """
+    """Get a compact summary (title, sheet names, headers, first N rows) for multiple spreadsheets at once."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
     summaries = []
 
@@ -220,17 +194,9 @@ def get_multiple_spreadsheet_summary(spreadsheet_ids: List[str],
 
 @mcp.tool()
 def get_spreadsheet_metadata(spreadsheet_id: str,
-                             include_sheet_properties: bool = True,
+                             include_sheet_properties: Annotated[bool, Field(description="True (default) includes per-sheet properties (sheetId, title, index, sheetType, hidden, gridProperties). False returns top-level properties only (title, locale, timeZone, autoRecalc, defaultFormat).")] = True,
                              ctx: Context = None) -> Dict[str, Any]:
-    """
-    Get spreadsheet-level metadata without fetching cell data.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID (from URL)
-        include_sheet_properties: True (default) includes per-sheet properties: sheetId, title, index,
-            sheetType, hidden, gridProperties (row/col counts). False returns top-level properties only
-            (title, locale, timeZone, autoRecalc, defaultFormat).
-    """
+    """Get spreadsheet-level metadata (title, locale, sheet list) without fetching cell data."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     if include_sheet_properties:
@@ -252,20 +218,11 @@ def get_spreadsheet_metadata(spreadsheet_id: str,
 
 @mcp.tool()
 def batch_get_values(spreadsheet_id: str,
-                     ranges: List[str],
-                     value_render_option: str = 'FORMATTED_VALUE',
-                     major_dimension: str = 'ROWS',
+                     ranges: Annotated[List[str], Field(description="A1 range strings, e.g. ['Sheet1!A1:B5', 'Data!C1:C10']")],
+                     value_render_option: Literal['FORMATTED_VALUE', 'UNFORMATTED_VALUE', 'FORMULA'] = 'FORMATTED_VALUE',
+                     major_dimension: Literal['ROWS', 'COLUMNS'] = 'ROWS',
                      ctx: Context = None) -> List[Dict[str, Any]]:
-    """
-    Read multiple A1 ranges from one spreadsheet in a single batchGet call.
-    For cross-spreadsheet reads use get_multiple_sheet_data instead.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID (from URL)
-        ranges: A1 range strings (e.g. ['Sheet1!A1:B5', 'Data!C1:C10'])
-        value_render_option: 'FORMATTED_VALUE' (default, display values), 'UNFORMATTED_VALUE' (raw numbers), or 'FORMULA'
-        major_dimension: 'ROWS' (default, each inner list is a row) or 'COLUMNS'
-    """
+    """Read multiple A1 ranges from one spreadsheet in a single batchGet; use get_multiple_sheet_data for cross-spreadsheet reads."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     response = sheets_service.spreadsheets().values().batchGet(
@@ -286,12 +243,7 @@ def batch_get_values(spreadsheet_id: str,
 
 @mcp.tool()
 def list_sheets(spreadsheet_id: str, ctx: Context = None) -> List[str]:
-    """
-    List all sheet names in spreadsheet.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID (from URL)
-    """
+    """List all sheet tab names in a spreadsheet."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     # Get spreadsheet metadata

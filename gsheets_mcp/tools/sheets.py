@@ -4,7 +4,9 @@ manage folders, and share.
 """
 
 import json
-from typing import List, Dict, Any, Optional
+from typing import Annotated, List, Dict, Any, Literal, Optional
+
+from pydantic import Field
 
 from mcp.server.fastmcp import Context
 
@@ -12,14 +14,8 @@ from gsheets_mcp.core import mcp, _get_sheet_id
 
 
 @mcp.tool()
-def create_spreadsheet(title: str, folder_id: Optional[str] = None, ctx: Context = None) -> Dict[str, Any]:
-    """
-    Create new Google Spreadsheet.
-
-    Args:
-        title: Spreadsheet title
-        folder_id: Drive folder ID. Omit to use configured default or root.
-    """
+def create_spreadsheet(title: str, folder_id: Annotated[Optional[str], Field(description="Drive folder ID. Omit to use configured default or root.")] = None, ctx: Context = None) -> Dict[str, Any]:
+    """Create a new Google Spreadsheet, optionally placing it in a Drive folder."""
     drive_service = ctx.request_context.lifespan_context.drive_service
     # Use provided folder_id or fall back to configured default
     target_folder_id = folder_id or ctx.request_context.lifespan_context.folder_id
@@ -54,13 +50,7 @@ def create_spreadsheet(title: str, folder_id: Optional[str] = None, ctx: Context
 def create_sheet(spreadsheet_id: str,
                 title: str,
                 ctx: Context = None) -> Dict[str, Any]:
-    """
-    Add new sheet tab to existing spreadsheet.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        title: Title for new sheet
-    """
+    """Add a new sheet tab to an existing spreadsheet."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     # Define the add sheet request
@@ -94,13 +84,8 @@ def create_sheet(spreadsheet_id: str,
 
 
 @mcp.tool()
-def list_spreadsheets(folder_id: Optional[str] = None, ctx: Context = None) -> List[Dict[str, str]]:
-    """
-    List spreadsheets in Drive folder.
-
-    Args:
-        folder_id: Drive folder ID. Omit to use configured default or 'My Drive'.
-    """
+def list_spreadsheets(folder_id: Annotated[Optional[str], Field(description="Drive folder ID. Omit to use configured default or 'My Drive'.")] = None, ctx: Context = None) -> List[Dict[str, str]]:
+    """List Google Spreadsheets in a Drive folder or 'My Drive'."""
     drive_service = ctx.request_context.lifespan_context.drive_service
     # Use provided folder_id or fall back to configured default
     target_folder_id = folder_id or ctx.request_context.lifespan_context.folder_id
@@ -130,13 +115,8 @@ def list_spreadsheets(folder_id: Optional[str] = None, ctx: Context = None) -> L
 
 
 @mcp.tool()
-def list_folders(parent_folder_id: Optional[str] = None, ctx: Context = None) -> List[Dict[str, str]]:
-    """
-    List Drive folders.
-
-    Args:
-        parent_folder_id: Parent folder ID to search within. Omit for 'My Drive' root.
-    """
+def list_folders(parent_folder_id: Annotated[Optional[str], Field(description="Parent folder ID to search within. Omit for 'My Drive' root.")] = None, ctx: Context = None) -> List[Dict[str, str]]:
+    """List Drive folders within a parent folder or at the 'My Drive' root."""
     drive_service = ctx.request_context.lifespan_context.drive_service
 
     query = "mimeType='application/vnd.google-apps.folder'"
@@ -177,14 +157,7 @@ def rename_sheet(spreadsheet: str,
                  sheet: str,
                  new_name: str,
                  ctx: Context = None) -> Dict[str, Any]:
-    """
-    Rename sheet tab.
-
-    Args:
-        spreadsheet: Spreadsheet ID
-        sheet: Current sheet name
-        new_name: New sheet name
-    """
+    """Rename a sheet tab to a new name."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     # Get sheet ID
@@ -229,15 +202,7 @@ def copy_sheet(src_spreadsheet: str,
                dst_spreadsheet: str,
                dst_sheet: str,
                ctx: Context = None) -> Dict[str, Any]:
-    """
-    Copy sheet from one spreadsheet to another.
-
-    Args:
-        src_spreadsheet: Source spreadsheet ID
-        src_sheet: Source sheet name
-        dst_spreadsheet: Destination spreadsheet ID
-        dst_sheet: Destination sheet name
-    """
+    """Copy a sheet from one spreadsheet to another; use duplicate_sheet to copy within the same spreadsheet."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     # Get source sheet ID
@@ -296,18 +261,10 @@ def copy_sheet(src_spreadsheet: str,
 
 @mcp.tool()
 def share_spreadsheet(spreadsheet_id: str,
-                      recipients: List[Dict[str, str]],
+                      recipients: Annotated[List[Dict[str, str]], Field(description='List of {email_address, role} dicts. Role: "reader", "commenter", or "writer". Example: [{"email_address": "user@example.com", "role": "writer"}]')],
                       send_notification: bool = True,
                       ctx: Context = None) -> Dict[str, List[Dict[str, Any]]]:
-    """
-    Share spreadsheet with multiple users.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        recipients: List of {email_address, role} dicts. Role: 'reader', 'commenter', or 'writer'.
-            Example: [{"email_address": "user@example.com", "role": "writer"}]
-        send_notification: Send notification email (default True)
-    """
+    """Share a spreadsheet with multiple users by email, assigning reader/commenter/writer roles."""
     drive_service = ctx.request_context.lifespan_context.drive_service
     successes = []
     failures = []
@@ -369,17 +326,9 @@ def share_spreadsheet(spreadsheet_id: str,
 def duplicate_sheet(spreadsheet_id: str,
                     source_sheet: str,
                     new_sheet_name: str,
-                    insert_index: Optional[int] = None,
+                    insert_index: Annotated[Optional[int], Field(description="0-based position for new sheet. Omit to place after source.")] = None,
                     ctx: Context = None) -> Dict[str, Any]:
-    """
-    Duplicate sheet within same spreadsheet (differs from copy_sheet which targets another spreadsheet).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        source_sheet: Sheet tab to duplicate
-        new_sheet_name: Name for duplicate sheet
-        insert_index: 0-based position for new sheet. Omit to place after source.
-    """
+    """Duplicate a sheet within the same spreadsheet; use copy_sheet to copy to a different spreadsheet."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -418,13 +367,7 @@ def duplicate_sheet(spreadsheet_id: str,
 def delete_sheet(spreadsheet_id: str,
                  sheet: str,
                  ctx: Context = None) -> Dict[str, Any]:
-    """
-    Delete sheet tab and all its data. Spreadsheet must retain at least one sheet.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet: Sheet tab name to delete (case-sensitive)
-    """
+    """Delete a sheet tab and all its data; spreadsheet must retain at least one sheet."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -458,16 +401,9 @@ def delete_sheet(spreadsheet_id: str,
 @mcp.tool()
 def set_sheet_visibility(spreadsheet_id: str,
                          sheet: str,
-                         hidden: bool,
+                         hidden: Annotated[bool, Field(description="True to hide the sheet tab, False to show it")],
                          ctx: Context = None) -> Dict[str, Any]:
-    """
-    Show or hide sheet tab.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet: Sheet tab name
-        hidden: True to hide, False to show
-    """
+    """Show or hide a sheet tab (updateSheetProperties hidden field)."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -504,16 +440,9 @@ def set_sheet_visibility(spreadsheet_id: str,
 @mcp.tool()
 def reorder_sheet(spreadsheet_id: str,
                   sheet: str,
-                  new_index: int,
+                  new_index: Annotated[int, Field(description="0-based target position for the sheet tab")],
                   ctx: Context = None) -> Dict[str, Any]:
-    """
-    Reorder sheet tab to new position.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet: Sheet tab name
-        new_index: 0-based target position
-    """
+    """Move a sheet tab to a new 0-based position within the spreadsheet."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -550,16 +479,9 @@ def reorder_sheet(spreadsheet_id: str,
 @mcp.tool()
 def move_spreadsheet_to_folder(spreadsheet_id: str,
                                 target_folder_id: str,
-                                remove_from_current: bool = True,
+                                remove_from_current: Annotated[bool, Field(description="True (default) removes from current parents to avoid duplicate folder membership")] = True,
                                 ctx: Context = None) -> Dict[str, Any]:
-    """
-    Move spreadsheet to different Drive folder (files.update addParents/removeParents).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID (Drive file ID)
-        target_folder_id: Destination Drive folder ID
-        remove_from_current: True (default) removes from current parents to avoid duplicate folder membership
-    """
+    """Move a spreadsheet to a different Drive folder using files.update addParents/removeParents."""
     drive_service = ctx.request_context.lifespan_context.drive_service
 
     update_kwargs = {
@@ -591,13 +513,7 @@ def move_spreadsheet_to_folder(spreadsheet_id: str,
 @mcp.tool()
 def trash_spreadsheet(spreadsheet_id: str,
                       ctx: Context = None) -> Dict[str, Any]:
-    """
-    Move spreadsheet to Drive trash (RECOVERABLE, not permanent deletion).
-    Owner can restore from drive.google.com within 30 days.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID to trash
-    """
+    """Move a spreadsheet to Drive trash (recoverable within 30 days, not permanent deletion)."""
     drive_service = ctx.request_context.lifespan_context.drive_service
 
     drive_service.files().update(

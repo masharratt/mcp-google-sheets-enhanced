@@ -8,7 +8,9 @@ appropriate builder function, collecting all request dicts into one batchUpdate.
 
 import json
 import os
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Literal, Optional
+
+from pydantic import Field
 
 from mcp.server.fastmcp import Context
 
@@ -360,28 +362,12 @@ _BLOCK_HANDLERS = {
 def apply_dashboard_template(
     spreadsheet_id: str,
     sheet: str,
-    template_name: str,
-    data_range: str = None,
-    title: str = None,
+    template_name: Literal['kpi_overview', 'sales_dashboard'],
+    data_range: Annotated[Optional[str], Field(description="A1 range for chart/table data, e.g. 'A7:F50'. Defaults to the template's banded_table range.")] = None,
+    title: Annotated[Optional[str], Field(description="Dashboard title. Defaults to the template's default text.")] = None,
     ctx: Context = None,
 ) -> Dict[str, Any]:
-    """
-    Apply declarative dashboard template to sheet in one batchUpdate.
-
-    Loads template from gsheets_mcp/templates/<template_name>.json, substitutes
-    {title}/{data_range} placeholders, converts blocks to API requests.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet: Sheet name (case-sensitive)
-        template_name: Built-in templates: 'kpi_overview', 'sales_dashboard'
-        data_range: A1 range for chart/table data (e.g. 'A7:F50'). Defaults to template's banded_table range.
-        title: Dashboard title. Defaults to template's default text.
-
-    Returns:
-        On success: {success: True, template, sheet, blocks_applied, request_count, spreadsheetId}
-        On failure: {success: False, message: reason}
-    """
+    """Apply a built-in dashboard template to a sheet in one batchUpdate; use kpi_overview or sales_dashboard."""
     # --- Validate template ---
     spec = _load_template(template_name)
     if spec is None:

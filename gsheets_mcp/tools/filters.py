@@ -2,7 +2,9 @@
 Filter tools: create, apply criteria to, and clear filters, plus named filter views.
 """
 
-from typing import Dict, Any, Optional
+from typing import Annotated, Dict, Any, Optional
+
+from pydantic import Field
 
 from mcp.server.fastmcp import Context
 
@@ -12,16 +14,9 @@ from gsheets_mcp.core import mcp, _get_sheet_id, _parse_row_col
 @mcp.tool()
 def create_filter(spreadsheet_id: str,
                   sheet_name: str,
-                  range: str,
+                  range: Annotated[str, Field(description="A1 range, e.g. 'A1:C10'")],
                   ctx: Context = None) -> Dict[str, Any]:
-    """
-    Apply basic filter (setBasicFilter) to range.
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet_name: Sheet name (case-sensitive)
-        range: A1 range (e.g. 'A1:C10')
-    """
+    """Apply a basic filter (setBasicFilter) to a range so columns show filter dropdowns."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -68,22 +63,10 @@ def create_filter(spreadsheet_id: str,
 @mcp.tool()
 def apply_filter_criteria(spreadsheet_id: str,
                           sheet_name: str,
-                          criteria: Dict[str, Any],
-                          filter_view_id: Optional[int] = None,
+                          criteria: Annotated[Dict[str, Any], Field(description='Dict mapping column-index string to filter criteria. Example: {"0": {"condition": {"type": "NUMBER_GREATER", "values": [{"userEnteredValue": "100"}]}}}')],
+                          filter_view_id: Annotated[Optional[int], Field(description="ID of filter view to update. Omit to target the basic filter.")] = None,
                           ctx: Context = None) -> Dict[str, Any]:
-    """
-    Set filter criteria on basic filter or named filter view.
-
-    filter_view_id absent: applies to basic filter via setBasicFilter (use after create_filter).
-    filter_view_id provided: applies to named filter view via updateFilterView (use after create_filter_view).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet_name: Sheet name (case-sensitive)
-        criteria: Dict mapping column-index string to filter criteria.
-            Example: {"0": {"condition": {"type": "NUMBER_GREATER", "values": [{"userEnteredValue": "100"}]}}}
-        filter_view_id: ID of filter view to update. Omit to target basic filter.
-    """
+    """Set filter criteria on a basic filter (omit filter_view_id) or a named filter view (provide filter_view_id)."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -152,13 +135,7 @@ def apply_filter_criteria(spreadsheet_id: str,
 def clear_filter(spreadsheet_id: str,
                  sheet_name: str,
                  ctx: Context = None) -> Dict[str, Any]:
-    """
-    Remove basic filter from sheet (clearBasicFilter).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet_name: Sheet name (case-sensitive)
-    """
+    """Remove the basic filter from a sheet (clearBasicFilter)."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -195,21 +172,11 @@ def clear_filter(spreadsheet_id: str,
 @mcp.tool()
 def create_filter_view(spreadsheet_id: str,
                        sheet: str,
-                       range: str,
+                       range: Annotated[str, Field(description="A1 range, e.g. 'A1:D10'")],
                        title: str,
-                       criteria: Optional[Dict[str, Any]] = None,
+                       criteria: Annotated[Optional[Dict[str, Any]], Field(description='Optional dict mapping column-index string to filter criteria. Example: {"0": {"condition": {"type": "NUMBER_GREATER", "values": [{"userEnteredValue": "100"}]}}}')] = None,
                        ctx: Context = None) -> Dict[str, Any]:
-    """
-    Create named saved filter view over range (addFilterView).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        sheet: Sheet name (case-sensitive)
-        range: A1 range (e.g. 'A1:D10')
-        title: Display name for filter view
-        criteria: Optional dict mapping column-index string to filter criteria.
-            Example: {"0": {"condition": {"type": "NUMBER_GREATER", "values": [{"userEnteredValue": "100"}]}}}
-    """
+    """Create a named, saved filter view over a range (addFilterView); use apply_filter_criteria to set its criteria."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
@@ -271,13 +238,7 @@ def create_filter_view(spreadsheet_id: str,
 def delete_filter_view(spreadsheet_id: str,
                        filter_view_id: int,
                        ctx: Context = None) -> Dict[str, Any]:
-    """
-    Delete named filter view by ID (deleteFilterView).
-
-    Args:
-        spreadsheet_id: Spreadsheet ID
-        filter_view_id: Integer ID of filter view to delete
-    """
+    """Delete a named filter view by its integer ID (deleteFilterView)."""
     sheets_service = ctx.request_context.lifespan_context.sheets_service
 
     try:
