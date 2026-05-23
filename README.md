@@ -64,9 +64,33 @@ docker logs --tail 50 mcp-google-sheets-enhanced  # no auth ExceptionGroup after
 { "mcpServers": { "google-sheets": { "type": "sse", "url": "http://localhost:8000/sse" } } }
 ```
 
+## Limiting which tools load (context cost)
+
+Every registered tool's name, description, and parameter schema is sent to the model on each session. The full set is ~10k tokens. Two env vars trim it; unregistered tools cost zero tokens.
+
+| Env var | Effect |
+|---------|--------|
+| `GSHEETS_ONLY` | Allowlist: load ONLY these. Empty (default) = load all. |
+| `GSHEETS_DISABLE` | Denylist: drop these. Applied after the allowlist. |
+
+Each is a comma-separated list of **category names** (`read`, `write`, `structure`, `sheets`, `format`, `conditional`, `validation`, `protection`, `charts`, `named_ranges`, `filters`, `pivot`, `metadata`, `dashboard`) and/or **individual tool names** (`create_chart`, `merge_cells`, ...).
+
+```bash
+# Drop rarely-used categories (~1.5k tokens saved):
+GSHEETS_DISABLE=pivot,metadata,named_ranges,protection
+
+# Load only a minimal working set (~3.2k tokens, 20 tools):
+GSHEETS_ONLY=read,write,format
+
+# Allowlist a category plus one extra tool:
+GSHEETS_ONLY=read,write,create_chart
+```
+
+Set these alongside the other server env vars (docker-compose / MCP client config); changes apply on restart. Unknown tokens are warned about on stderr and ignored.
+
 ## Tools
 
-The server exposes 69 MCP tools across ten categories. All ranges use A1 notation (e.g. `A1:C10`, not `A1:C10!Sheet1`). Sheet names are case-sensitive.
+The server exposes 71 MCP tools across fourteen categories. All ranges use A1 notation (e.g. `A1:C10`, not `A1:C10!Sheet1`). Sheet names are case-sensitive.
 
 ### Reading data
 

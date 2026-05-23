@@ -17,8 +17,10 @@ from gsheets_mcp.tools import dashboard
 
 # All @mcp.tool() decorators have now run. Strip redundant pydantic-generated
 # 'title' keys from every input schema to cut MCP context token cost.
-from gsheets_mcp.core import _strip_schema_titles
+from gsheets_mcp.core import _strip_schema_titles, _apply_tool_filter
 _strip_schema_titles()
+# Drop tools excluded by GSHEETS_ONLY / GSHEETS_DISABLE so they cost no context.
+_apply_tool_filter()
 
 __all__ = [
     'read', 'write', 'structure', 'sheets', 'format',

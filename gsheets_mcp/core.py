@@ -166,6 +166,88 @@ def _strip_schema_titles() -> None:
         _strip(tool.parameters)
 
 
+# ---------------------------------------------------------------------------
+# Tool filtering (context-cost control)
+# ---------------------------------------------------------------------------
+# Tools that are never registered cost zero context tokens. Two env vars let a
+# deployment trim the served tool set:
+#   GSHEETS_ONLY     allowlist: load ONLY these (empty = load all)
+#   GSHEETS_DISABLE  denylist: drop these from whatever the allowlist left
+# Each is a comma-separated list of category names (the tool's source module,
+# e.g. 'pivot') and/or individual tool names (e.g. 'create_pivot_table').
+
+def _parse_filter_tokens(raw: Optional[str]) -> set:
+    """Split a comma list into a normalized (stripped, lowercased) token set."""
+    if not raw:
+        return set()
+    return {tok.strip().lower() for tok in raw.split(",") if tok.strip()}
+
+
+def _select_tool_names(
+    name_to_category: Dict[str, str],
+    only: set,
+    disable: set,
+) -> set:
+    """
+    Compute the set of tool names to keep.
+
+    A token matches a tool if it equals the tool name or the tool's category.
+    Allowlist restricts the base set (empty allowlist = keep all); the denylist
+    is then removed from that result.
+    """
+    if only:
+        kept = {n for n, c in name_to_category.items() if n in only or c in only}
+    else:
+        kept = set(name_to_category)
+    return {n for n in kept if not (n in disable or name_to_category[n] in disable)}
+
+
+def _unknown_filter_tokens(name_to_category: Dict[str, str], tokens: set) -> set:
+    """Return tokens that match neither a tool name nor a category (typos)."""
+    known = set(name_to_category) | set(name_to_category.values())
+    return tokens - known
+
+
+def _apply_tool_filter() -> None:
+    """
+    Drop tools excluded by GSHEETS_ONLY / GSHEETS_DISABLE from the registry.
+
+    Must run AFTER all tool modules import and register, i.e. at the end of
+    gsheets_mcp/tools/__init__.py. Unknown tokens and an empty result are
+    warned about on stderr but never raise (a deployment typo should not crash
+    the server).
+    """
+    only = _parse_filter_tokens(os.environ.get("GSHEETS_ONLY"))
+    disable = _parse_filter_tokens(os.environ.get("GSHEETS_DISABLE"))
+    if not only and not disable:
+        return
+
+    tools = mcp._tool_manager._tools
+    name_to_category = {
+        name: tool.fn.__module__.split(".")[-1] for name, tool in tools.items()
+    }
+
+    unknown = _unknown_filter_tokens(name_to_category, only | disable)
+    if unknown:
+        print(
+            f"[gsheets-mcp] WARNING: unknown tool-filter tokens ignored: "
+            f"{sorted(unknown)}",
+            file=sys.stderr,
+        )
+
+    keep = _select_tool_names(name_to_category, only, disable)
+    for name in list(tools):
+        if name not in keep:
+            del tools[name]
+
+    if not keep:
+        print(
+            "[gsheets-mcp] WARNING: tool filter removed ALL tools; the server "
+            "exposes nothing. Check GSHEETS_ONLY / GSHEETS_DISABLE.",
+            file=sys.stderr,
+        )
+
+
 # ===== Shared Helper Functions =====
 # Used across multiple tool modules. Conditional-formatting-only helpers
 # (_normalize_condition_type, _build_condition_values, _build_gradient_rule)
